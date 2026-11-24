@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- Main Stylesheet (Modular CSS Entry Point) -->
-  <link rel="stylesheet" href="style.css?v=2.2.0">
+  <link rel="stylesheet" href="style.css?v=2.3.0">
 </head>
 
 <body>
@@ -55,6 +55,9 @@
         </button>
         <button id="btn-edit-couple" class="btn-icon" title="Atur Nama & Tanggal" aria-label="Atur Nama Tanggal">
           <i class="fa-solid fa-sliders"></i>
+        </button>
+        <button id="btn-login" class="btn-icon" title="Masuk untuk mengedit" aria-label="Masuk">
+          <i class="fa-solid fa-right-to-bracket"></i>
         </button>
       </div>
     </div>
@@ -1022,6 +1025,10 @@
             <button type="button" class="btn btn-secondary modal-close-btn">Batal</button>
             <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
           </div>
+          <div class="settings-account">
+            <span>Masuk sebagai <strong id="settings-account-email"></strong></span>
+            <button type="button" id="btn-logout" class="settings-logout">Keluar</button>
+          </div>
         </form>
       </div>
     </div>
@@ -1218,12 +1225,13 @@
   <!-- Firebase Cloud SDK (v10 Compat for Realtime Cross-Device Sync) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
   <!-- Client-side HEIC/HEIF Image Converter for iPhone & Android compatibility (deferred) -->
   <script src="js/libs/heic2any.min.js" defer></script>
 
   <!-- Main JavaScript File (ES Modules Architecture) -->
-  <script type="module" src="app.js?v=3.0.0"></script>
+  <script type="module" src="app.js?v=3.1.0"></script>
 </body>
 
 </html>

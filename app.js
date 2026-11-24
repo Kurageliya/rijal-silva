@@ -20,6 +20,7 @@ import { startLiveCounter } from './js/services/counterService.js';
 import { startBirthdayReminder } from './js/services/reminderService.js';
 import { setupAudioSynth, onMusicUrlChanged } from './js/services/audioService.js';
 import { initAmbientCanvas } from './js/services/canvasService.js';
+import { setupAuth } from './js/services/authService.js';
 import { showToast } from './js/utils/toast.js';
 import { safeGetLocalStorage, getMemoryTimestamp, ensureDocumentUnderLimit } from './js/utils/helpers.js';
 
@@ -286,6 +287,9 @@ function initApp() {
 
   // 9. Efek Canvas Partikel Romantis di Background
   initAmbientCanvas('ambient-canvas');
+
+  // 9b. Login: tombol edit hanya muncul untuk akun yang diizinkan Firestore Rules
+  setupAuth();
 
   // 10. Firebase Firestore Real-Time Synchronization Listener
   setupCloudListeners({

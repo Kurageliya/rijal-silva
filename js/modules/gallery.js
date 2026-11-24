@@ -157,7 +157,7 @@ export function renderPolaroidGrid({
         <div style="font-size: 2.8rem; margin-bottom: 0.75rem; color: var(--primary-pink);"><i class="fa-regular fa-images"></i></div>
         <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-dark); margin-bottom: 0.5rem;">Album Kenangan Masih Kosong</h3>
         <p style="max-width: 440px; margin: 0 auto 1.5rem; font-size: 0.95rem; line-height: 1.5;">Yuk abadikan momen indah perjalanan cinta kalian! Klik tombol di bawah untuk menambahkan foto kenangan pertama.</p>
-        <button type="button" class="btn btn-sm btn-gold" onclick="document.getElementById('btn-add-memory').click();">
+        <button type="button" class="btn btn-sm btn-gold btn-add-first-memory" onclick="document.getElementById('btn-add-memory').click();">
           <i class="fa-solid fa-plus"></i> Tambah Foto Kenangan
         </button>
       </div>

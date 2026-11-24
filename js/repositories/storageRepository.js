@@ -60,6 +60,25 @@ export function saveMemoriesList(list) {
   safeSetLocalStorage('love_journey_memories', Array.isArray(list) ? list : []);
 }
 
+/**
+ * Firestore Rules hanya mengizinkan akun editor membaca koleksi `editors`.
+ * Dokumennya tidak perlu ada: kalau pembacaan tidak ditolak, akun ini editor.
+ * @returns {Promise<'granted'|'denied'|'unknown'>}
+ */
+export async function checkEditorAccess() {
+  if (!db) return 'unknown';
+  try {
+    await db.collection('editors').doc('check').get();
+    return 'granted';
+  } catch (err) {
+    if (err.code === 'permission-denied') return 'denied';
+    console.warn('Cek akses editor gagal:', err);
+    return 'unknown';
+  }
+}
+
+const NO_ACCESS_MESSAGE = '⚠️ Perubahan ditolak server. Coba keluar lalu masuk lagi.';
+
 export async function syncMemoryToCloud(memory) {
   if (!db || !memory || !memory.id) return false;
   try {
@@ -69,7 +88,9 @@ export async function syncMemoryToCloud(memory) {
     return true;
   } catch (err) {
     console.error('Cloud sync memory error:', err);
-    if (err.message && (err.message.includes('exceeds the maximum') || err.message.includes('longer than') || err.message.includes('1048576'))) {
+    if (err.code === 'permission-denied') {
+      showToast(NO_ACCESS_MESSAGE);
+    } else if (err.message && (err.message.includes('exceeds the maximum') || err.message.includes('longer than') || err.message.includes('1048576'))) {
       showToast('⚠️ Ukuran dokumen melebihi batas 1 MB Firestore. Coba kurangi foto atau kompres lebih kecil.');
     } else {
       showToast('⚠️ Gagal menyimpan ke server cloud. Periksa koneksi internet.');
@@ -85,7 +106,9 @@ export async function deleteMemoryFromCloud(id) {
     return true;
   } catch (err) {
     console.error('Cloud sync delete error:', err);
-    showToast('⚠️ Gagal menghapus dari server cloud. Periksa koneksi internet.');
+    showToast(err.code === 'permission-denied'
+      ? NO_ACCESS_MESSAGE
+      : '⚠️ Gagal menghapus dari server cloud. Periksa koneksi internet.');
     return false;
   }
 }
@@ -97,6 +120,7 @@ export async function syncSettingsToCloud(settings) {
     return true;
   } catch (err) {
     console.error('Cloud sync settings error:', err);
+    if (err.code === 'permission-denied') showToast(NO_ACCESS_MESSAGE);
     return false;
   }
 }

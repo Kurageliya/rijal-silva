@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// Aturan akses Firestore untuk situs ini.
+//
+// Cara pasang:
+//   1. Firebase Console → Authentication → Sign-in method → aktifkan Google.
+//   2. Authentication → Settings → Authorized domains → tambahkan kurageliya.github.io
+//   3. Firestore Database → Rules → tempel isi file ini, ganti dua email di bawah
+//      dengan akun Google kalian, lalu Publish.
+//
+// Email asli cukup ditulis di Console saja, jangan di-commit ke repo publik ini.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isEditor() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in [
+          'email-pertama@gmail.com',
+          'email-kedua@gmail.com'
+        ];
+    }
+
+    // Semua orang boleh melihat, hanya kami berdua yang boleh mengubah.
+    match /memories/{memoryId} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    // Dibaca js/services/authService.js untuk mengecek apakah akun yang login editor.
+    // Dokumennya tidak perlu dibuat.
+    match /editors/{docId} {
+      allow read: if isEditor();
+    }
+  }
+}

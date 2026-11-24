@@ -145,6 +145,37 @@ audio {
   margin-top: 1.5rem;
 }
 
+/* Akun yang sedang login, di bawah form Pengaturan */
+.settings-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--pink-dusty);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.settings-account strong {
+  color: var(--text-dark);
+  overflow-wrap: anywhere;
+}
+
+.settings-logout {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--pink-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
 /* Toast Notifications */
 .toast-container {
   position: fixed;
