@@ -9,7 +9,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="v2.css?v=2">
+  <link rel="stylesheet" href="v2.css?v=3">
+  <meta name="theme-color" content="#f8dce2">
+  <script>
+    // Tema dipasang sebelum halaman tergambar supaya tidak berkedip. Urutan: ?tema= di link, pilihan terakhir, lalu pink.
+    (function () {
+      var t = null;
+      try { t = new URLSearchParams(location.search).get('tema') || localStorage.getItem('v2_tema'); } catch (e) {}
+      document.documentElement.dataset.tema = /^(pink|warna|gelap|krem)$/.test(t || '') ? t : 'pink';
+    })();
+  </script>
 </head>
 <body>
 
@@ -23,7 +32,15 @@
         <li><a href="#surat">Surat</a></li>
       </ul>
       <div class="nav-icons">
+        <button class="icon-btn" id="btn-tema" title="Ganti warna" aria-label="Ganti warna" aria-expanded="false" aria-controls="tema-pop"><i class="fa-solid fa-palette"></i></button>
         <button class="icon-btn" id="btn-audio-toggle" title="Putar musik" aria-label="Putar musik"><i class="fa-solid fa-music"></i></button>
+      </div>
+      <div class="tema-pop" id="tema-pop" hidden>
+        <h4>Pilih warna</h4>
+        <button data-tema="pink"><span class="swatch"><i style="background:#f8dce2"></i><i style="background:#c62645"></i><i style="background:#d99d1c"></i></span><span>Pink kertas<small>pink, merah ceri, mustard</small></span></button>
+        <button data-tema="warna"><span class="swatch"><i style="background:#cde0ec"></i><i style="background:#f3e3a3"></i><i style="background:#d5e7cd"></i><i style="background:#f8dcc6"></i></span><span>Warna-warni<small>tiap bagian beda kertas</small></span></button>
+        <button data-tema="gelap"><span class="swatch"><i style="background:#1d4436"></i><i style="background:#fffdf8"></i><i style="background:#f0bf4c"></i></span><span>Meja gelap<small>alas potong hijau, foto paling terang</small></span></button>
+        <button data-tema="krem"><span class="swatch"><i style="background:#f4ede3"></i><i style="background:#8c2f4b"></i></span><span>Krem<small>warna v2 sebelumnya</small></span></button>
       </div>
     </div>
   </nav>
@@ -243,6 +260,6 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script type="module" src="v2.js?v=2"></script>
+  <script type="module" src="v2.js?v=3"></script>
 </body>
 </html>

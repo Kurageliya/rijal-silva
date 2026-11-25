@@ -581,7 +581,7 @@ function setupLightbox() {
 /* --------------------------------------------------------------------------
    Cerita: jemuran foto (urut dari yang paling lama) + kartu cerita
    -------------------------------------------------------------------------- */
-const FLAG_COLORS = ['#8c2f4b', '#c49a3c', '#5f7f5b', '#2f4a6b'];
+const isPhone = () => matchMedia('(max-width: 860px)').matches;
 
 /** Aturan timeline tetap sama dengan versi sekarang: kenangan ber-❤️, dari yang terlama, maksimal 10. */
 function storyList() {
@@ -595,21 +595,23 @@ function renderLine() {
   const track = $('#line-track');
   if (!list.length) { track.innerHTML = '<p class="empty">Belum ada cerita.</p>'; return; }
 
-  const narrow = innerWidth < 860;
-  const itemW = narrow ? 160 : 190;
-  const step = narrow ? 192 : 232;
-  const pad = Math.max(24, (innerWidth - 1080) / 2 + 24);
+  // Di HP foto dibuat hampir selebar layar supaya tidak terlihat kecil; foto sebelah tetap mengintip.
+  const narrow = isPhone();
+  const itemW = narrow ? Math.round(Math.min(320, innerWidth * 0.74)) : 190;
+  const step = itemW + (narrow ? 30 : 42);
+  const pad = narrow ? 18 : Math.max(24, (innerWidth - 1080) / 2 + 24);
 
   // posisi tiap benda di tali: bendera bulan, foto, lalu tulisan "bersambung…"
+  // (di HP bendera sedikit diselipkan di belakang foto supaya foto pertama utuh terlihat)
   const parts = [];
-  let x = pad + 34;
+  let x = pad + (narrow ? 14 : 34);
   let lastMonth = '';
   list.forEach((mem, i) => {
     const d = parseDay(mem.date);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     if (key !== lastMonth) {
       parts.push({ type: 'flag', x, label: d.toLocaleDateString('id-ID', { month: 'short' }) });
-      x += 94;
+      x += narrow ? 58 : 94;
       lastMonth = key;
     }
     parts.push({ type: 'item', x, i });
@@ -622,7 +624,7 @@ function renderLine() {
 
   // tali melengkung (kurva kuadrat) di antara dua tiang
   const y0 = 34;
-  const sag = 58;
+  const sag = narrow ? 34 : 58;
   const ropeY = (px) => {
     const t = Math.min(1, Math.max(0, (px - x0) / (x1 - x0)));
     return (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * (y0 + sag * 2) + t * t * y0;
@@ -635,8 +637,8 @@ function renderLine() {
   for (const part of parts) {
     if (part.type === 'flag') {
       const cx = part.x + 37;
-      html += `<div class="flag" style="left:${part.x}px;top:${ropeY(cx) - 1}px;transform:rotate(${angleAt(cx).toFixed(1)}deg)">`
-        + `<div style="background:${FLAG_COLORS[flagN++ % FLAG_COLORS.length]}">${escapeHtml(part.label)}</div></div>`;
+      html += `<div class="flag f${flagN++ % 4}" style="left:${part.x}px;top:${ropeY(cx) - 1}px;transform:rotate(${angleAt(cx).toFixed(1)}deg)">`
+        + `<div>${escapeHtml(part.label)}</div></div>`;
     } else if (part.type === 'end') {
       html += `<div class="line-end" style="left:${part.x}px;top:${ropeY(part.x + 60)}px;transform:rotate(${angleAt(part.x + 60).toFixed(1)}deg)">bersambung…</div>`;
     } else {
@@ -657,6 +659,9 @@ function renderLine() {
     }
   }
   track.style.width = `${W}px`;
+  // tinggi: tali paling turun (y0 + sag) + foto persegi + tanggal + label, sisa untuk ayunan & foto aktif yang membesar
+  track.style.height = `${y0 + sag + itemW + (narrow ? 150 : 160)}px`;
+  track.style.setProperty('--hang-w', `${itemW}px`);
   track.innerHTML = html;
   $$('.hang', track).forEach((el) => el.classList.toggle('on', Number(el.dataset.i) === state.storyIndex));
 }
@@ -729,7 +734,12 @@ function selectStory(i, { center = true, animate = true } = {}) {
   $('#story-thumbs').innerHTML = imgs.length > 1
     ? imgs.map((url, n) => `<button data-n="${n}" aria-label="Foto ${n + 1}"><img src="${escapeHtml(url)}" alt="" loading="lazy"></button>`).join('')
     : '';
-  $$('#story-thumbs button').forEach((b) => b.addEventListener('click', () => setStoryPhoto(Number(b.dataset.n))));
+  $('#story-card').classList.toggle('single', imgs.length < 2);
+  // Di HP kartu tidak punya foto besar (fotonya di jemuran), jadi thumbnail langsung membuka foto penuh.
+  $$('#story-thumbs button').forEach((b) => b.addEventListener('click', () => {
+    if (isPhone()) openLightbox(mem, Number(b.dataset.n), b);
+    else setStoryPhoto(Number(b.dataset.n));
+  }));
   setStoryPhoto(0, false);
 
   $$('.hang').forEach((el) => el.classList.toggle('on', Number(el.dataset.i) === state.storyIndex));
@@ -771,7 +781,13 @@ function setupStory() {
   $('#line-track').addEventListener('click', (e) => {
     const hang = e.target.closest('.hang');
     if (!hang || dragged()) return;
-    selectStory(Number(hang.dataset.i));
+    const i = Number(hang.dataset.i);
+    if (i === state.storyIndex) { // foto yang sudah dipilih: buka penuh
+      const mem = state.storyList[i];
+      if (mem) openLightbox(mem, 0, $('.print', hang));
+      return;
+    }
+    selectStory(i);
     // kalau kartu cerita masih di bawah layar, gulir pelan supaya perubahannya terlihat
     const card = $('#story-card').getBoundingClientRect();
     if (card.top > innerHeight - 160) scrollBy({ top: card.top - innerHeight + Math.min(card.height, innerHeight - 120) + 24, behavior: 'smooth' });
@@ -971,6 +987,42 @@ function setupLetter() {
 }
 
 /* --------------------------------------------------------------------------
+   Tema: dipilih dari tombol palet. Pilihan ditulis ke link (?tema=...) supaya
+   link yang dikirim langsung menampilkan tema yang sama, dan diingat di perangkat ini.
+   -------------------------------------------------------------------------- */
+const TEMA_BAR = { pink: '#f8dce2', warna: '#f6d3da', gelap: '#1d4436', krem: '#f4ede3' };
+
+function applyTema(tema, save) {
+  if (!TEMA_BAR[tema]) tema = 'pink';
+  document.documentElement.dataset.tema = tema;
+  $('meta[name="theme-color"]').setAttribute('content', TEMA_BAR[tema]); // warna bilah alamat di HP
+  $$('#tema-pop button').forEach((b) => b.classList.toggle('on', b.dataset.tema === tema));
+  if (!save) return;
+  try { localStorage.setItem('v2_tema', tema); } catch (e) { /* tidak wajib */ }
+  const url = new URL(location.href);
+  url.searchParams.set('tema', tema);
+  history.replaceState(null, '', url);
+}
+
+function setupTema() {
+  const btn = $('#btn-tema');
+  const pop = $('#tema-pop');
+  const fromLink = new URLSearchParams(location.search).get('tema');
+  applyTema(document.documentElement.dataset.tema, Boolean(fromLink && TEMA_BAR[fromLink]));
+  const toggle = (open) => {
+    pop.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+  };
+  btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(pop.hidden); });
+  $$('button', pop).forEach((b) => b.addEventListener('click', () => {
+    applyTema(b.dataset.tema, true);
+    setTimeout(() => toggle(false), 180);
+  }));
+  document.addEventListener('click', (e) => { if (!pop.hidden && !pop.contains(e.target)) toggle(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) { toggle(false); btn.focus(); } });
+}
+
+/* --------------------------------------------------------------------------
    Navbar
    -------------------------------------------------------------------------- */
 function setupNav() {
@@ -1021,6 +1073,7 @@ function renderSettings() {
 }
 
 function init() {
+  setupTema();
   $$('.reveal').forEach(watch);
   renderSettings();
   renderMemories();
