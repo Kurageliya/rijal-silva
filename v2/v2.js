@@ -207,7 +207,7 @@ function renderTime() {
   const start = anniversary();
   const now = new Date();
   const dayN = Math.max(1, daysBetween(start, now) + 1);
-  $('#hero-day').textContent = `hari ke-${dayN}`;
+  $('#hero-day').textContent = dayN; // sticky note "hari ke-N"
   $('#since-kicker').textContent = `sejak ${fmtDate(start)}`;
 
   state.dayN = dayN;
