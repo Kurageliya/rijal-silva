@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;800&family=Yellowtail&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="v2.css?v=5">
+  <link rel="stylesheet" href="v2.css?v=6">
   <meta name="theme-color" content="#f4ede3">
   <script>
     // Mode dipasang sebelum halaman tergambar supaya tidak berkedip.
@@ -214,12 +214,31 @@
     <!-- SURAT -->
     <section class="section" id="surat">
       <div class="wrap">
-        <div class="kicker reveal">ditulis sendiri</div>
-        <h2 class="reveal">Surat</h2>
+        <div class="surat-head">
+          <div>
+            <div class="kicker reveal">ditulis sendiri</div>
+            <h2 class="reveal">Surat</h2>
+          </div>
+          <!-- hanya muncul untuk akun Rijal & Silva -->
+          <button class="coret-btn" id="coret-btn" hidden><i class="fa-solid fa-pen"></i> Coret</button>
+        </div>
+
+        <div class="coret-tools" id="coret-tools" hidden>
+          <div class="coret-inks" role="radiogroup" aria-label="Warna tinta">
+            <button role="radio" data-ink="tinta" aria-label="Tinta" aria-checked="true" class="on"></button>
+            <button role="radio" data-ink="merah" aria-label="Merah" aria-checked="false"></button>
+            <button role="radio" data-ink="biru" aria-label="Biru" aria-checked="false"></button>
+            <button role="radio" data-ink="hijau" aria-label="Hijau" aria-checked="false"></button>
+            <button role="radio" data-ink="kuning" aria-label="Kuning" aria-checked="false"></button>
+          </div>
+          <button class="coret-tool" id="coret-eraser" aria-pressed="false" title="Ketuk atau geser di atas coretan untuk menghapusnya"><i class="fa-solid fa-eraser"></i><span>Hapus</span></button>
+          <button class="coret-tool" id="coret-undo" title="Batalkan coretan terakhirmu"><i class="fa-solid fa-rotate-left"></i><span>Batal</span></button>
+          <button class="btn coret-done" id="coret-done">Selesai</button>
+        </div>
 
         <div class="letter-stage" id="letter-stage">
-          <svg class="doodle heart small desk-only lh-a" viewBox="0 0 40 40" aria-hidden="true"><path pathLength="1" d="M20 34 C 8 25, 3 17, 7 10 C 10 5, 17 5, 20 12 C 23 5, 31 5, 34 11 C 37 18, 31 26, 20 34"/></svg>
-          <svg class="doodle heart desk-only lh-b" viewBox="0 0 40 40" aria-hidden="true"><path pathLength="1" d="M20 34 C 8 25, 3 17, 7 10 C 10 5, 17 5, 20 12 C 23 5, 31 5, 34 11 C 37 18, 31 26, 20 34"/></svg>
+          <!-- coretan Rijal & Silva di sekitar surat; ukurannya ikut lebar halaman supaya posisinya sama di HP dan laptop -->
+          <svg class="coret-board" id="coret-board" viewBox="0 0 1000 520" preserveAspectRatio="none" aria-hidden="true"></svg>
           <button class="envelope reveal" id="envelope" aria-label="Buka surat">
             <span class="env-back"></span>
             <span class="env-paper"></span>
@@ -247,7 +266,11 @@
     </section>
   </main>
 
-  <footer class="footer"><span id="footer-text">dibuat Rijal, untuk Silva</span></footer>
+  <footer class="footer">
+    <span id="footer-text">dibuat Rijal, untuk Silva</span>
+    <!-- masuk hanya untuk Rijal & Silva (untuk mencoret); tamu tetap bisa melihat semuanya -->
+    <small class="login-line"><span id="login-who"></span><button class="link muted" id="btn-login">masuk</button></small>
+  </footer>
 
   <!-- Lightbox: foto dibuka seperti diambil dari album -->
   <div class="lightbox" id="lightbox" aria-hidden="true">
@@ -273,6 +296,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script type="module" src="v2.js?v=5"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script type="module" src="v2.js?v=6"></script>
 </body>
 </html>

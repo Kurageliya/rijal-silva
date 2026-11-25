@@ -3,7 +3,7 @@
  * Tampilan baru di atas data & logika yang sama dengan versi sekarang
  * (Firestore, halaman buku pilihan, hitungan waktu, ulang tahun, musik).
  */
-import { getCoupleSettings, getMemoriesList, setupCloudListeners } from '../js/repositories/storageRepository.js';
+import { getCoupleSettings, getMemoriesList, setupCloudListeners, checkEditorAccess } from '../js/repositories/storageRepository.js';
 import { calculateTimeUnits } from '../js/services/counterService.js';
 import { parseBirthday, getZodiac } from '../js/services/reminderService.js';
 import { setupAudioSynth, onMusicUrlChanged } from '../js/services/audioService.js';
@@ -925,6 +925,7 @@ function setupLetter() {
       envelope.style.left = `${env.left - box.left}px`;
       envelope.style.top = `${env.top - box.top}px`;
       hint.style.display = 'none';
+      stage.classList.add('reading'); // surat mulai dari atas papan
       wrap.hidden = false;
       showLetter(state.letterIndex, 0.35);
 
@@ -953,6 +954,7 @@ function setupLetter() {
     ], { duration: 260, easing: 'ease-in', fill: 'forwards' });
     fold.onfinish = () => {
       wrap.hidden = true;
+      stage.classList.remove('reading');
       fold.cancel();
       // Amplop kembali tertutup tanpa memutar ulang animasi bukanya
       envelope.getAnimations().forEach((a) => a.cancel());
@@ -984,6 +986,310 @@ function setupLetter() {
   }));
 
   $('#letter-more').addEventListener('click', toggleLetterLength);
+}
+
+/* --------------------------------------------------------------------------
+   Masuk (hanya Rijal & Silva). Untuk sekarang dipakai untuk mencoret.
+   Kunci sebenarnya ada di Firestore Rules; di sini hanya menampilkan tombol.
+   -------------------------------------------------------------------------- */
+const editor = { user: null, ok: false };
+const LOGIN_ERRORS = {
+  'auth/popup-blocked': 'Popup login diblokir browser. Izinkan popup untuk situs ini, lalu coba lagi.',
+  'auth/unauthorized-domain': 'Domain ini belum didaftarkan di Firebase Authentication.',
+  'auth/operation-not-allowed': 'Login Google belum diaktifkan di Firebase Authentication.'
+};
+
+function setupLogin() {
+  const btn = $('#btn-login');
+  if (!window.firebase || typeof firebase.auth !== 'function') { btn.hidden = true; return; }
+  const auth = firebase.auth();
+  let clicked = false;
+  btn.addEventListener('click', async () => {
+    if (editor.user) {
+      await auth.signOut();
+      showToast('Kamu sudah keluar.');
+      return;
+    }
+    clicked = true;
+    try {
+      await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    } catch (err) {
+      clicked = false;
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
+      console.error('Login gagal:', err);
+      showToast(LOGIN_ERRORS[err.code] || 'Gagal masuk. Coba lagi sebentar lagi.');
+    }
+  });
+  auth.onAuthStateChanged(async (user) => {
+    editor.user = user;
+    editor.ok = false;
+    if (user) {
+      const access = await checkEditorAccess();
+      if (access === 'granted') {
+        editor.ok = true;
+        if (clicked) showToast(`Masuk sebagai ${user.email}. Sekarang kamu bisa mencoret di bagian Surat.`, 4200);
+      } else if (access === 'denied') {
+        showToast(`Akun ${user.email} tidak punya akses untuk mencoret.`);
+        await auth.signOut();
+      } else {
+        showToast('Belum bisa memeriksa akses. Cek koneksi, lalu muat ulang halaman.');
+      }
+    }
+    clicked = false;
+    document.body.classList.toggle('can-edit', editor.ok);
+    $('#login-who').textContent = editor.ok ? `masuk sebagai ${user.email} · ` : '';
+    btn.textContent = editor.user ? 'keluar' : 'masuk';
+    $('#coret-btn').hidden = !editor.ok;
+    if (!editor.ok) stopCoret();
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Coretan bersama di sekitar surat.
+   Disimpan di Firestore settings/doodles (aturan "settings" yang sudah ada:
+   semua orang boleh melihat, hanya editor yang boleh mengubah).
+   Koordinat memakai papan 1000 × 520, jadi posisinya sama di semua ukuran layar.
+   -------------------------------------------------------------------------- */
+const BOARD_W = 1000;
+const BOARD_H = 520;
+const INKS = ['tinta', 'merah', 'biru', 'hijau', 'kuning'];
+const DOODLE_LIMIT = 900000; // dokumen Firestore maksimal ~1 MB
+const coret = { strokes: [], on: false, erasing: false, ink: 'tinta', mine: [], live: null, liveEl: null, erased: new Set() };
+
+const doodleRef = () => (window.firebase && firebase.apps.length ? firebase.firestore().collection('settings').doc('doodles') : null);
+const decodePts = (s) => String(s || '').split(' ').map((p) => p.split(',').map(Number)).filter((p) => p.length === 2 && p.every(Number.isFinite));
+const encodePts = (pts) => pts.map(([x, y]) => `${x},${y}`).join(' ');
+
+/** Garis halus: kurva kuadrat lewat titik tengah tiap pasang titik. */
+function pathD(pts) {
+  if (!pts.length) return '';
+  const [x0, y0] = pts[0];
+  if (pts.length === 1) return `M${x0} ${y0} l0.01 0`; // titik
+  let d = `M${x0} ${y0}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [x1, y1] = pts[i];
+    const [x2, y2] = pts[i + 1];
+    d += ` Q${x1} ${y1} ${(x1 + x2) / 2} ${(y1 + y2) / 2}`;
+  }
+  const [xl, yl] = pts[pts.length - 1];
+  return `${d} L${xl} ${yl}`;
+}
+
+/** Ramer–Douglas–Peucker: buang titik yang tidak mengubah bentuk garis, supaya data tetap kecil. */
+function simplify(pts, eps = 0.9) {
+  if (pts.length < 3) return pts;
+  const [ax, ay] = pts[0];
+  const [bx, by] = pts[pts.length - 1];
+  const len = Math.hypot(bx - ax, by - ay) || 1;
+  let max = 0;
+  let idx = 0;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [px, py] = pts[i];
+    const dist = Math.abs((by - ay) * px - (bx - ax) * py + bx * ay - by * ax) / len;
+    if (dist > max) { max = dist; idx = i; }
+  }
+  if (max <= eps) return [pts[0], pts[pts.length - 1]];
+  return [...simplify(pts.slice(0, idx + 1), eps).slice(0, -1), ...simplify(pts.slice(idx), eps)];
+}
+
+function renderCoret() {
+  const svg = $('#coret-board');
+  svg.innerHTML = coret.strokes.map((s) => `<path class="i-${s.c}" data-id="${escapeHtml(s.id)}" d="${pathD(s.pts)}"/>`).join('');
+  coret.liveEl = null;
+  if (coret.live) startLivePath();
+  updateStrokeWidth();
+}
+
+/** Tebal garis dalam piksel layar: ikut lebar papan, tapi tidak lebih tipis dari 2px di HP. */
+function updateStrokeWidth() {
+  const w = $('#coret-board').getBoundingClientRect().width || BOARD_W;
+  $('#coret-board').style.setProperty('--sw', `${Math.max(2, Math.min(3.4, (w / BOARD_W) * 3.2)).toFixed(2)}px`);
+}
+
+function startLivePath() {
+  coret.liveEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  coret.liveEl.setAttribute('class', `i-${coret.live.c}`);
+  coret.liveEl.setAttribute('d', pathD(coret.live.pts));
+  $('#coret-board').appendChild(coret.liveEl);
+}
+
+function boardPoint(e) {
+  const r = $('#coret-board').getBoundingClientRect();
+  const x = Math.round(((e.clientX - r.left) / r.width) * BOARD_W);
+  const y = Math.round(((e.clientY - r.top) / r.height) * BOARD_H);
+  return [Math.max(0, Math.min(BOARD_W, x)), Math.max(0, Math.min(BOARD_H, y))];
+}
+
+/** Coretan yang paling atas di dekat titik ini (jarak ~14px di layar). */
+function strokeNear([x, y]) {
+  const r = $('#coret-board').getBoundingClientRect();
+  const reach = 14 / (r.width / BOARD_W);
+  for (let i = coret.strokes.length - 1; i >= 0; i--) {
+    const pts = coret.strokes[i].pts;
+    for (let k = 0; k < pts.length; k++) {
+      const [ax, ay] = pts[k];
+      const [bx, by] = pts[Math.min(k + 1, pts.length - 1)];
+      const dx = bx - ax;
+      const dy = by - ay;
+      const t = dx || dy ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy))) : 0;
+      if (Math.hypot(x - (ax + t * dx), y - (ay + t * dy)) <= reach) return coret.strokes[i];
+    }
+  }
+  return null;
+}
+
+function coretError(err, what) {
+  console.error(`Coretan gagal ${what}:`, err);
+  showToast(err && err.code === 'permission-denied'
+    ? 'Ditolak server: akun ini tidak punya akses untuk mencoret.'
+    : `Coretan gagal ${what}. Cek koneksi, lalu coba lagi.`);
+}
+
+async function saveStroke(raw) {
+  const ref = doodleRef();
+  if (!ref) return;
+  try {
+    await ref.set({ strokes: firebase.firestore.FieldValue.arrayUnion(raw) }, { merge: true });
+  } catch (err) {
+    coretError(err, 'disimpan');
+  }
+}
+
+async function removeStroke(stroke) {
+  const ref = doodleRef();
+  if (!ref || !stroke) return;
+  try {
+    await ref.update({ strokes: firebase.firestore.FieldValue.arrayRemove(stroke.raw) });
+  } catch (err) {
+    coret.erased.delete(stroke.id);
+    renderCoret(); // coretan yang tadi memudar tampil utuh lagi
+    coretError(err, 'dihapus');
+  }
+}
+
+function setInk(ink) {
+  coret.ink = ink;
+  setErasing(false);
+  $$('.coret-inks button').forEach((b) => {
+    b.classList.toggle('on', b.dataset.ink === ink);
+    b.setAttribute('aria-checked', String(b.dataset.ink === ink));
+  });
+}
+
+function setErasing(on) {
+  coret.erasing = on;
+  $('#coret-eraser').setAttribute('aria-pressed', String(on));
+  $('#letter-stage').classList.toggle('erasing', on);
+}
+
+function startCoret() {
+  if (!editor.ok) return;
+  coret.on = true;
+  $('#letter-stage').classList.add('drawing');
+  $('#coret-tools').hidden = false;
+  $('#coret-btn').hidden = true;
+  updateStrokeWidth();
+  const top = $('#coret-tools').getBoundingClientRect().top;
+  if (top < 70 || top > innerHeight * 0.5) scrollBy({ top: top - 90, behavior: 'smooth' });
+}
+
+function stopCoret() {
+  coret.on = false;
+  coret.live = null;
+  setErasing(false);
+  $('#letter-stage').classList.remove('drawing');
+  $('#coret-tools').hidden = true;
+  $('#coret-btn').hidden = !editor.ok;
+  renderCoret();
+}
+
+function setupCoret() {
+  const svg = $('#coret-board');
+  const ref = doodleRef();
+  if (ref) {
+    ref.onSnapshot((doc) => {
+      const list = doc.exists && Array.isArray(doc.data().strokes) ? doc.data().strokes : [];
+      coret.strokes = list
+        .filter((raw) => raw && raw.id && raw.p)
+        .sort((a, b) => (a.t || 0) - (b.t || 0))
+        .map((raw) => ({ raw, id: String(raw.id), c: INKS.includes(raw.c) ? raw.c : 'tinta', pts: decodePts(raw.p) }));
+      coret.size = JSON.stringify(list).length;
+      renderCoret();
+    }, (err) => console.warn('Coretan tidak bisa dimuat:', err));
+  }
+
+  $('#coret-btn').addEventListener('click', startCoret);
+  $('#coret-done').addEventListener('click', stopCoret);
+  $$('.coret-inks button').forEach((b) => b.addEventListener('click', () => setInk(b.dataset.ink)));
+  $('#coret-eraser').addEventListener('click', () => setErasing(!coret.erasing));
+  $('#coret-undo').addEventListener('click', () => {
+    // coretan terakhir yang dibuat dari perangkat ini (dan masih ada)
+    while (coret.mine.length) {
+      const id = coret.mine.pop();
+      const stroke = coret.strokes.find((s) => s.id === id);
+      if (stroke) { removeStroke(stroke); return; }
+    }
+    showToast('Belum ada coretanmu yang bisa dibatalkan.');
+  });
+
+  const eraseAt = (pt) => {
+    const hit = strokeNear(pt);
+    if (!hit || coret.erased.has(hit.id)) return;
+    coret.erased.add(hit.id);
+    const el = svg.querySelector(`path[data-id="${CSS.escape(hit.id)}"]`);
+    if (el) el.classList.add('fading');
+    removeStroke(hit);
+  };
+
+  svg.addEventListener('pointerdown', (e) => {
+    if (!coret.on || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    e.preventDefault();
+    try { svg.setPointerCapture(e.pointerId); } catch (err) { /* garis tetap jalan tanpa capture */ }
+    const pt = boardPoint(e);
+    if (coret.erasing) {
+      coret.erased.clear();
+      coret.erasingNow = true;
+      eraseAt(pt);
+      return;
+    }
+    if ((coret.size || 0) > DOODLE_LIMIT) {
+      showToast('Tempat coretan sudah penuh. Hapus beberapa coretan lama dulu, ya.');
+      return;
+    }
+    coret.live = { c: coret.ink, pts: [pt] };
+    startLivePath();
+  });
+  svg.addEventListener('pointermove', (e) => {
+    if (!coret.on) return;
+    const pt = boardPoint(e);
+    if (coret.erasing) { if (coret.erasingNow) eraseAt(pt); return; }
+    if (!coret.live) return;
+    const [lx, ly] = coret.live.pts[coret.live.pts.length - 1];
+    if (Math.hypot(pt[0] - lx, pt[1] - ly) < 2) return;
+    coret.live.pts.push(pt);
+    coret.liveEl.setAttribute('d', pathD(coret.live.pts));
+  });
+  const finish = () => {
+    coret.erasingNow = false;
+    if (!coret.live) return;
+    const pts = simplify(coret.live.pts);
+    const raw = { id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`, c: coret.live.c, p: encodePts(pts), t: Date.now() };
+    coret.live = null;
+    coret.mine.push(raw.id);
+    // tampil langsung; dokumen dari server menyusul lewat onSnapshot
+    coret.strokes.push({ raw, id: raw.id, c: raw.c, pts });
+    renderCoret();
+    saveStroke(raw);
+  };
+  svg.addEventListener('pointerup', finish);
+  svg.addEventListener('pointercancel', finish);
+  addEventListener('resize', updateStrokeWidth);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && coret.on && !$('#lightbox').classList.contains('open')) stopCoret(); });
+
+  // Hanya untuk tes di komputer sendiri (localhost): login Google tidak bisa dipakai di browser tes.
+  if (location.hostname === 'localhost') {
+    window.__coretTest = { coret, render: renderCoret, start: () => { editor.ok = true; startCoret(); }, decodePts };
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -1106,6 +1412,8 @@ function init() {
   setupStory();
   setupLightbox();
   setupLetter();
+  setupCoret();
+  setupLogin();
   setupNav();
   setupAudioSynth($('#btn-audio-toggle'), $('#bg-music'), () => ({
     ...state.settings,

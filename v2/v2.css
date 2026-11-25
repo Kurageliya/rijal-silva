@@ -331,8 +331,6 @@ button { font: inherit; color: inherit; }
 .album-title { position: relative; }
 .doodle.heart { width: 36px; }
 .album-title .doodle.heart { left: 132px; top: 30px; transform: rotate(12deg); }
-.lh-a { left: calc(50% - 250px); top: 120px; transform: rotate(-14deg); }
-.lh-b { left: calc(50% + 214px); top: 10px; width: 44px !important; transform: rotate(10deg); }
 .doodle.small { width: 26px; }
 
 .doodle-heart { position: fixed; z-index: 90; width: 34px; height: 34px; pointer-events: none; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -478,18 +476,25 @@ button { font: inherit; color: inherit; }
 @keyframes img-fade { from { opacity: 0.2; } }
 
 /* ---------- Surat ---------- */
-.letter-stage { position: relative; margin-top: 44px; min-height: 320px; display: flex; flex-direction: column; align-items: center; }
+/* Panggung surat = papan coret 1000 × 520 yang lebarnya ikut halaman. Amplop ikut mengecil di HP supaya
+   coretan di sekitarnya tetap berada di tempat yang sama, di HP maupun laptop. */
+.letter-stage {
+  position: relative; margin-top: 28px; aspect-ratio: 1000 / 520;
+  padding-top: calc(13.75% - 24px); /* amplop + petunjuk di tengah papan (padding % dihitung dari lebar) */
+  display: flex; flex-direction: column; align-items: center;
+}
+.letter-stage.reading { padding-top: 0; }
 .envelope {
-  position: relative; display: block; width: 360px; height: 232px; border: none; padding: 0; background: none;
-  cursor: pointer; perspective: 900px;
+  position: relative; z-index: 1; display: block; width: 38%; aspect-ratio: 360 / 232; border: none; padding: 0; background: none;
+  cursor: pointer; perspective: 900px; container-type: inline-size;
 }
 .envelope.reveal.in { transform: rotate(-2deg); }
 .envelope:hover .env-flap { transform: rotateX(18deg); }
 .env-back, .env-front, .env-flap, .env-paper { position: absolute; display: block; }
 .env-back { inset: 0; background: #dcc8b1; border-radius: 4px; box-shadow: 0 2px 3px rgba(50, 35, 25, 0.12), 0 18px 30px -18px rgba(50, 35, 25, 0.45); }
 .env-paper {
-  left: 18px; right: 18px; top: 14px; height: 85%; background: var(--print); border-radius: 2px;
-  background-image: linear-gradient(transparent 23px, #e8dfd2 24px); background-size: 100% 24px;
+  left: 5cqw; right: 5cqw; top: 3.9cqw; height: 85%; background: var(--print); border-radius: 2px;
+  background-image: linear-gradient(transparent calc(6.67cqw - 1px), #e8dfd2 6.67cqw); background-size: 100% 6.67cqw;
   transition: transform 0.6s var(--ease-out) 0.35s;
 }
 .env-front { inset: 0; background: #ead9c4; clip-path: polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%); border-radius: 4px; z-index: 2; }
@@ -500,9 +505,9 @@ button { font: inherit; color: inherit; }
   transition: transform 0.45s var(--ease-out), z-index 0s 0.2s;
 }
 .seal {
-  position: absolute; z-index: 4; left: 50%; top: 52%; width: 56px; height: 56px; margin: -28px 0 0 -28px;
+  position: absolute; z-index: 4; left: 50%; top: 52%; width: 15.5cqw; height: 15.5cqw; margin: -7.75cqw 0 0 -7.75cqw;
   border-radius: 50%; background: var(--wine); color: #f6e7da; display: grid; place-items: center;
-  font: 700 20px/1 var(--hand); box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.2);
+  font: 700 5.6cqw/1 var(--hand); box-shadow: inset 0 0 0 1.1cqw rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: transform 0.3s, opacity 0.3s;
 }
 .envelope.open .env-flap { transform: rotateX(180deg); z-index: 1; }
@@ -511,10 +516,76 @@ button { font: inherit; color: inherit; }
 /* Saat surat keluar, amplop dilepas dari alur halaman tapi tetap di tempatnya, di belakang surat. */
 .envelope.floating { position: absolute; z-index: 1; pointer-events: none; }
 .envelope.no-anim, .envelope.no-anim * { transition: none !important; }
-.envelope-hint { font: 700 24px var(--hand); color: var(--on-bg-soft); margin-top: 16px; transition: opacity 0.25s; }
+.envelope-hint { position: relative; z-index: 1; font: 700 24px var(--hand); color: var(--on-bg-soft); margin-top: 16px; transition: opacity 0.25s; }
 .envelope-hint.hide { opacity: 0; }
 
-.letter-wrap { position: relative; z-index: 2; width: 100%; max-width: 740px; }
+/* ---------- Coretan bersama di sekitar surat ----------
+   Warna disimpan sebagai nama tinta, bukan kode warna. Tiap mode punya versinya sendiri:
+   mode terang memakai tinta gelap, mode gelap memakai tinta terang, jadi coretan selalu terbaca. */
+:root {
+  --ink-tinta: #2b2321;
+  --ink-merah: #c0303f;
+  --ink-biru: #2c5b94;
+  --ink-hijau: #2f7a4f;
+  --ink-kuning: #a06f00;
+}
+[data-tema="gelap"] {
+  --ink-tinta: #f3ecdc;
+  --ink-merah: #ff8a9c;
+  --ink-biru: #9ccaf2;
+  --ink-hijau: #9edcae;
+  --ink-kuning: #f2c450;
+}
+.surat-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.coret-btn, .coret-tool {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;
+  font-weight: 600; font-size: 14px; border-radius: 999px; padding: 8px 16px;
+  border: 1.5px solid var(--on-bg); color: var(--on-bg); background: transparent;
+  transition: background 0.15s, color 0.15s;
+}
+.coret-btn[hidden], .coret-tools[hidden] { display: none; }
+.coret-btn:hover { background: var(--on-bg); color: var(--bg); }
+.coret-tools {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; width: fit-content; max-width: 100%;
+  margin-top: 22px; padding: 10px 12px 10px 16px; background: var(--print); color: var(--ink);
+  box-shadow: var(--shadow-print); transform: rotate(-0.5deg);
+}
+.coret-tools .coret-tool { border-color: var(--line); color: var(--ink); padding: 7px 14px; }
+.coret-tools .coret-tool:hover { border-color: var(--ink); }
+.coret-tools .coret-tool[aria-pressed="true"] { background: var(--ink); color: var(--print); border-color: var(--ink); }
+.coret-tools .coret-done { padding: 8px 18px; font-size: 14px; }
+.coret-inks { display: flex; gap: 8px; }
+/* contoh tinta digambar di atas warna latar mode sekarang, jadi terlihat persis seperti hasilnya */
+.coret-inks button {
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer; padding: 0;
+  border: 2px solid var(--print); box-shadow: 0 0 0 1px var(--line);
+  background: radial-gradient(circle, var(--c) 0 42%, var(--bg) 46%);
+}
+.coret-inks button.on { box-shadow: 0 0 0 2.5px var(--ink); }
+.coret-inks [data-ink="tinta"] { --c: var(--ink-tinta); }
+.coret-inks [data-ink="merah"] { --c: var(--ink-merah); }
+.coret-inks [data-ink="biru"] { --c: var(--ink-biru); }
+.coret-inks [data-ink="hijau"] { --c: var(--ink-hijau); }
+.coret-inks [data-ink="kuning"] { --c: var(--ink-kuning); }
+
+.coret-board { position: absolute; left: 0; top: 0; z-index: 0; width: 100%; height: auto; aspect-ratio: 1000 / 520; overflow: visible; pointer-events: none; }
+.coret-board path { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: var(--sw, 3px); vector-effect: non-scaling-stroke; }
+.coret-board .i-tinta { stroke: var(--ink-tinta); }
+.coret-board .i-merah { stroke: var(--ink-merah); }
+.coret-board .i-biru { stroke: var(--ink-biru); }
+.coret-board .i-hijau { stroke: var(--ink-hijau); }
+.coret-board .i-kuning { stroke: var(--ink-kuning); }
+.coret-board .fading { opacity: 0.25; transition: opacity 0.15s; }
+.letter-wrap { z-index: 2; }
+/* Saat mencoret: papan di depan, amplop/surat dibuat samar, halaman tidak ikut tergulir saat jari menggambar */
+.letter-stage.drawing .coret-board {
+  z-index: 5; pointer-events: auto; touch-action: none; cursor: crosshair;
+  outline: 2px dashed var(--bg-line); outline-offset: 6px; border-radius: 4px;
+}
+.letter-stage.drawing.erasing .coret-board { cursor: pointer; }
+.letter-stage.drawing .envelope, .letter-stage.drawing .letter-wrap, .letter-stage.drawing .envelope-hint { opacity: 0.35; pointer-events: none; transition: opacity 0.2s; }
+
+.letter-wrap { position: relative; z-index: 2; width: 100%; max-width: 660px; } /* sisakan ruang coretan di kiri-kanan surat */
 .letter-wrap[hidden] { display: none; }
 .letter-tabs { display: flex; gap: 8px; }
 .letter-tabs button {
@@ -579,7 +650,9 @@ button { font: inherit; color: inherit; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(16px) rotate(-0.8deg); } }
 
 /* ---------- Footer ---------- */
-.footer { padding: 52px 0 70px; border-top: 1px solid var(--bg-line); text-align: center; font: 500 25px var(--hand); color: var(--on-bg-soft); }
+.footer { padding: 52px 0 40px; border-top: 1px solid var(--bg-line); text-align: center; font: 500 25px var(--hand); color: var(--on-bg-soft); }
+.login-line { display: block; margin-top: 18px; font: 400 13px var(--sans); color: var(--on-bg-soft); opacity: 0.8; }
+.login-line .link { font-size: 13px; font-weight: 500; }
 
 /* ---------- Mode gelap ----------
    Krem = mode terang. Mode gelap = alas potong hijau bergaris, foto & kertas jadi yang paling terang.
@@ -709,7 +782,6 @@ button { font: inherit; color: inherit; }
   .story-nav { margin-top: 22px; }
   .story-nav span { font-size: 24px; }
   .story-card .book-nav, .book-controls .book-nav, .strip-foot .book-nav { width: 44px; height: 44px; }
-  .envelope { width: 300px; height: 194px; }
   .letter { padding: 24px 22px 26px 40px; }
   .letter::before { left: 28px; }
   .letter-body p { font-size: 24px; }
@@ -717,6 +789,9 @@ button { font: inherit; color: inherit; }
   .envelope-hint { font-size: 26px; }
   .lb-print h3 { font-size: 30px; }
   .lb-print p { font-size: 16px; }
+  /* di HP tidak ada ruang di samping surat: saat surat dibuka, coretan disembunyikan supaya tidak mengintip di sela tab */
+  .letter-stage.reading:not(.drawing) .coret-board { opacity: 0; }
+  .coret-tools { gap: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
