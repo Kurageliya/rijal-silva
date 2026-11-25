@@ -22,8 +22,12 @@ const fmtDate = (d) => d.toLocaleDateString('id-ID', { day: 'numeric', month: 'l
 const fmtShort = (d) => d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 const parseDay = (s) => new Date(String(s || '').split('T')[0] + 'T12:00:00');
 const pad = (n) => String(n).padStart(2, '0');
-/** Path aset di data ditulis relatif ke root situs; v2 ada satu folder di bawahnya. */
-const asset = (url) => (!url || /^(data:|https?:|blob:)/.test(url)) ? url : '../' + String(url).replace(/^\.?\//, '');
+/**
+ * Path aset di data ditulis relatif ke akar situs (mis. "assets/images/x.jpeg").
+ * Akar situs dihitung dari lokasi file ini (v2/v2.js), jadi benar baik halamannya di akar maupun di subfolder.
+ */
+const SITE_ROOT = new URL('../', import.meta.url);
+const asset = (url) => (!url || /^(data:|https?:|blob:)/.test(url)) ? url : new URL(String(url).replace(/^\.?\//, ''), SITE_ROOT).href;
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
 function addMonths(date, n) {
