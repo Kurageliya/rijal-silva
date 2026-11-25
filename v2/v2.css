@@ -238,6 +238,10 @@ button { font: inherit; color: inherit; }
 .stack { position: relative; }
 .stacking .hero { position: sticky; top: min(0px, calc(100vh - var(--hero-h, 100vh))); z-index: 0; transform-origin: 50% 80%; }
 .stacking .waktu { will-change: transform; }
+/* HP: tanpa efek yang mengikuti guliran (terasa patah-patah). Lembar Waktu cukup "mendarat" sekali saat terlihat:
+   transisi CSS biasa, dijalankan browser sendiri sehingga tetap mulus. */
+.waktu.landing { transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.waktu.landing:not(.landed) { --lift: 80px; --tilt: -2.5deg; }
 
 /* ---------- Waktu: selembar kertas kraft di atas meja, tepi atas & bawah sobek ---------- */
 .waktu {
@@ -245,7 +249,7 @@ button { font: inherit; color: inherit; }
   --line: rgba(70, 45, 25, 0.22);
   position: relative; z-index: 1; width: min(1200px, calc(100% - 32px)); margin: 0 auto; padding-top: 72px; color: var(--ink);
   background-color: var(--kraft); background-image: var(--kraft-image);
-  transform: rotate(var(--tilt, 0deg)); transform-origin: 50% 0;
+  transform: translateY(var(--lift, 0px)) rotate(var(--tilt, 0deg)); transform-origin: 50% 0;
   /* box-shadow, bukan filter: lembar sebesar ini jauh lebih ringan digambar ulang saat bergeser */
   box-shadow: 0 -8px 22px -10px rgba(40, 25, 10, 0.3), 0 18px 28px -14px rgba(40, 25, 10, 0.32);
 }
@@ -798,7 +802,12 @@ button { font: inherit; color: inherit; }
 /* ---------- HP ---------- */
 @media (max-width: 860px) {
   .wrap { padding: 0 18px; }
-  .nav-links { display: none; }
+  /* menu di HP: baris kedua di bawah nama, selalu terlihat */
+  html { scroll-padding-top: 100px; }
+  .nav .wrap { flex-wrap: wrap; height: auto; gap: 0 12px; padding-top: 4px; }
+  .nav-brand { font-size: 28px; line-height: 50px; }
+  .nav-links { order: 3; flex-basis: 100%; justify-content: space-between; gap: 0; margin-top: -2px; padding: 0 2px 6px; font-size: 15px; }
+  .nav-links a { padding: 4px 2px; }
   .hero { padding: 28px 0 112px; }
   .hero .wrap { grid-template-columns: 1fr; gap: 44px; }
   .book-area { max-width: 380px; width: calc(100% - 26px); margin: 0 auto; }
@@ -821,8 +830,6 @@ button { font: inherit; color: inherit; }
   .desk-only { display: none; }
   .doodle.star { width: 30px; right: -38px; top: -12px; }
   .waktu { width: calc(100% - 14px); padding-top: 52px; }
-  /* hero di HP lebih tinggi dari layar: baru menempel saat bawahnya di 70% layar, jadi judul & tombol sempat terbaca utuh */
-  .stacking .hero { top: min(0px, calc(70vh - var(--hero-h, 100vh))); }
   .waktu-tape { width: 84px; height: 24px; top: -12px; }
   .together { grid-template-columns: 1fr; gap: 30px; }
   .calendar { width: 220px; }

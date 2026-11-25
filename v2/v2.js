@@ -744,7 +744,8 @@ function updateJourneyProgress() {
   const ink = $('#journey-path .ink');
   if (!ink) return;
   const r = $('#journey').getBoundingClientRect();
-  const f = reduceMotion ? 1 : Math.min(1, Math.max(0, (innerHeight * 0.75 - r.top) / r.height));
+  // di HP garis langsung utuh: menggambar mengikuti guliran terasa patah-patah di HP
+  const f = reduceMotion || isPhone() ? 1 : Math.min(1, Math.max(0, (innerHeight * 0.75 - r.top) / r.height));
   ink.style.strokeDashoffset = `${(state.journeyLen * (1 - f)).toFixed(1)}`;
 }
 
@@ -811,6 +812,17 @@ function setupStack() {
   if (reduceMotion) return; // halaman bergulir biasa
   const hero = $('.hero');
   const sheet = $('#waktu');
+  // Di HP efek yang mengikuti guliran terasa patah-patah (guliran dan JS jalan di jalur berbeda).
+  // Cukup: lembar Waktu "mendarat" sekali saat mulai terlihat, lewat transisi CSS yang mulus.
+  if (isPhone()) {
+    sheet.classList.add('landing');
+    new IntersectionObserver(([entry], obs) => {
+      if (!entry.isIntersecting) return;
+      sheet.classList.add('landed');
+      obs.disconnect();
+    }, { rootMargin: '0px 0px -12% 0px' }).observe(sheet);
+    return;
+  }
   document.body.classList.add('stacking');
   // hero di HP lebih tinggi dari layar: baru menempel setelah bagian bawahnya terlihat
   const measure = () => hero.style.setProperty('--hero-h', `${hero.offsetHeight}px`);
@@ -818,9 +830,8 @@ function setupStack() {
   const update = () => {
     ticking = false;
     const top = sheet.getBoundingClientRect().top;
-    // 0 = lembar Waktu mulai naik (di HP dari 70% layar, lihat CSS), 1 = sudah menutupi hero sepenuhnya
-    const start = isPhone() ? innerHeight * 0.7 : innerHeight;
-    const p = Math.min(1, Math.max(0, 1 - top / start));
+    // 0 = lembar Waktu baru muncul di bawah layar, 1 = sudah menutupi hero sepenuhnya
+    const p = Math.min(1, Math.max(0, 1 - top / innerHeight));
     const fade = Math.min(1, Math.max(0, (p - 0.35) / 0.65));
     hero.style.transform = p > 0 ? `scale(${(1 - 0.06 * p).toFixed(4)})` : '';
     hero.style.opacity = p > 0 ? (1 - fade * fade).toFixed(3) : '';
