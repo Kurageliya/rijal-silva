@@ -937,52 +937,46 @@ function setupLetter() {
       ], { duration: 650, easing: ease });
       $('#letter-tabs').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 400, fill: 'backwards' });
       $('.letter-foot').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 500, fill: 'backwards' });
-      const fade = envelope.animate([
-        { opacity: 1, transform: 'rotate(-2deg)' },
-        { opacity: 0, transform: 'translateY(40px) rotate(-2deg) scale(0.95)' }
-      ], { duration: 450, easing: 'ease-in', fill: 'forwards' });
-      fade.onfinish = () => { envelope.style.visibility = 'hidden'; busy = false; };
+      // Amplop memudar lewat class CSS, bukan animasi JS bertahan (fill) yang nanti dibatalkan:
+      // di sebagian HP Android, animasi opacity yang dibatalkan kadang membuat amplop tetap
+      // tak terlihat walau masih bisa diklik.
+      envelope.classList.add('away');
+      setTimeout(() => { busy = false; }, 460);
     }, 900);
   });
 
   $('#letter-close').addEventListener('click', () => {
     if (busy) return;
     busy = true;
-    const fold = letter.animate([
-      { opacity: 1, transform: 'none' },
-      { opacity: 0, transform: 'translateY(18px) scale(0.97)' }
-    ], { duration: 260, easing: 'ease-in', fill: 'forwards' });
-    fold.onfinish = () => {
+    letter.classList.add('folding'); // surat memudar (CSS), lalu disembunyikan
+    setTimeout(() => {
       wrap.hidden = true;
+      letter.classList.remove('folding');
       stage.classList.remove('reading');
-      fold.cancel();
-      // Amplop kembali tertutup tanpa memutar ulang animasi bukanya
-      envelope.getAnimations().forEach((a) => a.cancel());
+      // Amplop kembali tertutup tanpa memutar ulang animasi bukanya...
       envelope.classList.add('no-anim');
       envelope.classList.remove('open', 'floating');
       envelope.style.left = envelope.style.top = envelope.style.visibility = '';
       void envelope.offsetWidth;
-      envelope.classList.remove('no-anim');
+      // ...lalu muncul lagi lewat transisi CSS; setelah selesai, tidak ada sisa animasi apa pun
+      envelope.classList.remove('no-anim', 'away');
       hint.style.display = '';
       hint.classList.remove('hide');
-      envelope.animate([
-        { opacity: 0, transform: 'translateY(14px) rotate(-2deg)' },
-        { opacity: 1, transform: 'rotate(-2deg)' }
-      ], { duration: 380, easing: ease });
       const top = stage.getBoundingClientRect().top;
       if (top < 0 || top > innerHeight * 0.6) stage.scrollIntoView({ behavior: 'smooth', block: 'center' });
       busy = false;
-    };
+    }, 270);
   });
 
   $$('#letter-tabs button').forEach((btn) => btn.addEventListener('click', () => {
     const i = Number(btn.dataset.letter);
     if (i === state.letterIndex || busy) return;
     const body = $('#letter-body');
-    body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, fill: 'forwards' }).onfinish = (e) => {
+    body.classList.add('swapping'); // memudar lewat CSS (lihat catatan amplop di atas)
+    setTimeout(() => {
       showLetter(i);
-      e.target.cancel();
-    };
+      body.classList.remove('swapping');
+    }, 160);
   }));
 
   $('#letter-more').addEventListener('click', toggleLetterLength);

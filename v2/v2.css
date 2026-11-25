@@ -516,6 +516,14 @@ button { font: inherit; color: inherit; }
 /* Saat surat keluar, amplop dilepas dari alur halaman tapi tetap di tempatnya, di belakang surat. */
 .envelope.floating { position: absolute; z-index: 1; pointer-events: none; }
 .envelope.no-anim, .envelope.no-anim * { transition: none !important; }
+/* Hilang/muncul lewat class + transisi CSS, bukan animasi JS yang ditahan lalu dibatalkan:
+   di sebagian HP Android itu kadang membuat amplop/surat tetap tak terlihat walau masih bisa diklik. */
+.letter-stage .envelope.away {
+  opacity: 0; visibility: hidden; transform: translateY(40px) rotate(-2deg) scale(0.95);
+  transition: opacity 0.45s ease-in, transform 0.45s ease-in, visibility 0s linear 0.45s;
+}
+.letter.folding { opacity: 0; transform: translateY(18px) scale(0.97); transition: opacity 0.26s ease-in, transform 0.26s ease-in; }
+.letter-body.swapping { opacity: 0; transition: opacity 0.15s; }
 .envelope-hint { position: relative; z-index: 1; font: 700 24px var(--hand); color: var(--on-bg-soft); margin-top: 16px; transition: opacity 0.25s; }
 .envelope-hint.hide { opacity: 0; }
 
