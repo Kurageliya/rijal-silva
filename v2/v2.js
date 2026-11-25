@@ -3,7 +3,7 @@
  * Tampilan baru di atas data & logika yang sama dengan versi sekarang
  * (Firestore, halaman buku pilihan, hitungan waktu, ulang tahun, musik).
  */
-import { getCoupleSettings, getMemoriesList, setupCloudListeners, checkEditorAccess } from '../js/repositories/storageRepository.js';
+import { getCoupleSettings, getMemoriesList, setupCloudListeners, checkEditorAccess, saveScrapbookCustomPages } from '../js/repositories/storageRepository.js';
 import { calculateTimeUnits } from '../js/services/counterService.js';
 import { parseBirthday, getZodiac } from '../js/services/reminderService.js';
 import { setupAudioSynth, onMusicUrlChanged } from '../js/services/audioService.js';
@@ -11,6 +11,8 @@ import { getEffectiveBookItems, getStickerForIndex, playPaperRustle } from '../j
 import { getMemoryImages } from '../js/modules/timeline.js';
 import { escapeHtml, getMemoryTimestamp } from '../js/utils/helpers.js';
 import { showToast } from '../js/utils/toast.js';
+// ?v= dinaikkan bersama v2.js setiap editor.js berubah (supaya HP tidak memakai versi lama dari cache)
+import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=13';
 
 const DAY = 86400000;
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -603,6 +605,7 @@ function updateLightbox(animate = true) {
   $('#lb-next').hidden = !many || lb.index === lb.count - 1;
   $('#lb-counter').hidden = !many;
   $('#lb-counter').textContent = `${lb.index + 1} / ${lb.count}`;
+  updateLightboxActions();
 }
 
 function stepLightbox(dir) {
@@ -627,10 +630,47 @@ function setupLightbox() {
     if (Math.abs(dx) > 40) stepLightbox(dx < 0 ? 1 : -1);
   });
   document.addEventListener('keydown', (e) => {
-    if (!$('#lightbox').classList.contains('open')) return;
+    if (!$('#lightbox').classList.contains('open') || $('#editor-dialog').open) return; // Esc di form edit hanya menutup form
     if (e.key === 'Escape') closeLightbox();
     if (e.key === 'ArrowRight') stepLightbox(1);
     if (e.key === 'ArrowLeft') stepLightbox(-1);
+  });
+}
+
+/** Tombol edit di bawah foto penuh (hanya tampil untuk editor). */
+function updateLightboxActions() {
+  const btn = $('#lb-actions [data-act="feature"]');
+  if (!btn || !lb.mem) return;
+  const featured = lb.mem.isFeatured !== false;
+  btn.classList.toggle('on', featured);
+  btn.innerHTML = featured ? '<i class="fa-solid fa-heart"></i> Di Cerita' : '<i class="fa-regular fa-heart"></i> Tampilkan di Cerita';
+}
+
+/* --------------------------------------------------------------------------
+   Mode edit: tombol-tombolnya hanya terlihat setelah masuk sebagai editor
+   (body.can-edit). Formnya ada di editor.js.
+   -------------------------------------------------------------------------- */
+function setupEditor() {
+  const guard = (fn) => () => { if (editor.ok) fn(); };
+  $('#btn-settings').addEventListener('click', guard(() => openSettingsForm(state.settings)));
+  $('#btn-edit-letter').addEventListener('click', guard(() => openSettingsForm(state.settings, 'letters')));
+  $('#btn-add-memory').addEventListener('click', guard(() => openMemoryForm(null, state.memories)));
+  $('#btn-book-pick').addEventListener('click', guard(() => openBookPicker(state.memories, state.settings)));
+  $('#lb-actions').addEventListener('click', async (e) => {
+    const act = e.target.closest('[data-act]');
+    if (!act || !editor.ok || !lb.mem) return;
+    const mem = state.memories.find((m) => m.id === lb.mem.id) || lb.mem;
+    if (act.dataset.act === 'edit') {
+      closeLightbox();
+      openMemoryForm(mem, state.memories);
+    } else if (act.dataset.act === 'feature') {
+      if (await toggleFeatured(mem)) {
+        lb.mem = { ...mem, isFeatured: mem.isFeatured === false };
+        updateLightboxActions();
+      }
+    } else if (act.dataset.act === 'delete') {
+      confirmDelete(mem, () => closeLightbox());
+    }
   });
 }
 
@@ -688,6 +728,7 @@ function renderJourney() {
       <div class="note-wrap">
         <span class="tape ${TAPES[i % TAPES.length]}"></span>
         <div class="note">
+          <button type="button" class="note-edit editor-only" aria-label="Edit kenangan ini" title="Edit kenangan"><i class="fa-solid fa-pen"></i></button>
           <div class="note-date"><b>${pad(d.getDate())}</b><span><strong>${d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</strong>${when}</span></div>
           <h3>${title}</h3>
           ${mem.category ? `<span class="note-cat">${escapeHtml(String(mem.category).toLowerCase())}</span>` : ''}
@@ -762,6 +803,12 @@ function setPocket(wrap, out) {
 function setupJourney() {
   const box = $('#journey-stops');
   box.addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.note-edit');
+    if (editBtn) {
+      const mem = state.storyList[Number(editBtn.closest('.stop').dataset.i)];
+      if (mem) openMemoryForm(mem, state.memories);
+      return;
+    }
     const more = e.target.closest('.note-more');
     if (more) {
       const clamped = more.previousElementSibling.classList.toggle('clamp');
@@ -1328,7 +1375,8 @@ function setupCoret() {
 
   // Hanya untuk tes di komputer sendiri (localhost): login Google tidak bisa dipakai di browser tes.
   if (location.hostname === 'localhost') {
-    window.__coretTest = { coret, render: renderCoret, start: () => { editor.ok = true; startCoret(); }, decodePts };
+    window.__coretTest = { coret, render: renderCoret, start: () => { editor.ok = true; startCoret(); }, decodePts,
+      edit: () => { editor.ok = true; document.body.classList.add('can-edit'); } };
   }
 }
 
@@ -1405,7 +1453,9 @@ function setupNav() {
    Render & data
    -------------------------------------------------------------------------- */
 function memoriesSignature(list) {
-  return list.map((m) => [m.id, m.title, m.date, m.time, m.category, m.isFeatured, (m.caption || '').length, getMemoryImages(m).length].join('~')).join('|');
+  // isi cerita lengkap + sidik tiap foto (panjang + ujungnya), supaya edit teks atau ganti foto ikut tampil
+  return list.map((m) => [m.id, m.title, m.date, m.time, m.category, m.isFeatured, m.caption || '',
+    getMemoryImages(m).map((u) => `${String(u).length}:${String(u).slice(-16)}`).join(',')].join('~')).join('|');
 }
 
 function renderMemories() {
@@ -1455,6 +1505,7 @@ function init() {
   setupLetter();
   setupCoret();
   setupLogin();
+  setupEditor();
   setupNav();
   setupAudioSynth($('#btn-audio-toggle'), $('#bg-music'), () => ({
     ...state.settings,
@@ -1468,7 +1519,10 @@ function init() {
       renderMemories();
     },
     onSettingsUpdate: (settings) => {
-      if (!settings || JSON.stringify(settings) === state.settingsSig) return;
+      if (!settings) return;
+      // foto buku: cache di perangkat ini mengikuti server (kalau dikosongkan di HP lain, di sini ikut kembali ke bawaan)
+      saveScrapbookCustomPages(Array.isArray(settings.scrapbookCustomPages) && settings.scrapbookCustomPages.length ? settings.scrapbookCustomPages : null);
+      if (JSON.stringify(settings) === state.settingsSig) return;
       const prevMusic = state.settings.musicUrl;
       state.settings = settings;
       renderSettings();

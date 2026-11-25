@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;800&family=Yellowtail&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="v2/v2.css?v=12">
+  <link rel="stylesheet" href="v2/v2.css?v=13">
   <meta name="theme-color" content="#f4ede3">
   <script>
     // Mode dipasang sebelum halaman tergambar supaya tidak berkedip.
@@ -34,6 +34,8 @@
         <li><a href="#surat">Surat</a></li>
       </ul>
       <div class="nav-icons">
+        <!-- hanya untuk akun Rijal & Silva -->
+        <button class="icon-btn editor-only" id="btn-settings" title="Pengaturan & surat" aria-label="Pengaturan"><i class="fa-solid fa-gear"></i></button>
         <button class="icon-btn" id="btn-mode" title="Mode gelap" aria-label="Mode gelap"><i class="fa-solid fa-moon"></i></button>
         <button class="icon-btn" id="btn-audio-toggle" title="Putar musik" aria-label="Putar musik"><i class="fa-solid fa-music"></i></button>
       </div>
@@ -66,6 +68,7 @@
             <span class="book-count" id="book-count">1 / 1</span>
             <button class="book-nav" id="book-next" aria-label="Halaman berikutnya"><i class="fa-solid fa-arrow-right"></i></button>
           </div>
+          <button class="link muted editor-only book-pick" id="btn-book-pick"><i class="fa-solid fa-images"></i> ganti foto buku</button>
           <div class="hint" id="book-hint">
             <svg viewBox="0 0 90 50" aria-hidden="true"><path d="M86 8 C 60 2, 30 10, 14 38" /><path d="M8 28 L 14 39 L 26 34" /></svg>
             <span>klik buat balik halaman</span>
@@ -168,7 +171,10 @@
             <h2 class="reveal">Album</h2>
             <svg class="doodle heart desk-only" viewBox="0 0 40 40" aria-hidden="true"><path pathLength="1" d="M20 34 C 8 25, 3 17, 7 10 C 10 5, 17 5, 20 12 C 23 5, 31 5, 34 11 C 37 18, 31 26, 20 34"/></svg>
           </div>
-          <div class="tabs reveal" id="tabs"></div>
+          <div class="album-tools">
+            <div class="tabs reveal" id="tabs"></div>
+            <button class="coret-btn editor-only" id="btn-add-memory"><i class="fa-solid fa-plus"></i> Tambah kenangan</button>
+          </div>
         </div>
         <!-- papan gabus: foto ditancap pin -->
         <div class="corkboard reveal">
@@ -208,7 +214,10 @@
             <h2 class="reveal">Surat</h2>
           </div>
           <!-- hanya muncul untuk akun Rijal & Silva -->
-          <button class="coret-btn" id="coret-btn" hidden><i class="fa-solid fa-pen"></i> Coret</button>
+          <div class="head-actions">
+            <button class="coret-btn editor-only" id="btn-edit-letter"><i class="fa-solid fa-pen-nib"></i> Edit surat</button>
+            <button class="coret-btn" id="coret-btn" hidden><i class="fa-solid fa-pen"></i> Coret</button>
+          </div>
         </div>
 
         <div class="coret-tools" id="coret-tools" hidden>
@@ -272,6 +281,11 @@
         <button class="lb-arrow next" id="lb-next" aria-label="Foto berikutnya"><i class="fa-solid fa-chevron-right"></i></button>
         <span class="lb-counter" id="lb-counter"></span>
       </div>
+        <div class="lb-actions editor-only" id="lb-actions">
+          <button type="button" class="lb-act" data-act="edit"><i class="fa-solid fa-pen"></i> Edit</button>
+          <button type="button" class="lb-act" data-act="feature"></button>
+          <button type="button" class="lb-act danger" data-act="delete"><i class="fa-solid fa-trash"></i> Hapus</button>
+        </div>
       <figcaption>
         <h3 id="lb-title"></h3>
         <small id="lb-date"></small>
@@ -281,12 +295,15 @@
     <button class="lb-close" id="lb-close" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
   </div>
 
+  <!-- form edit (kenangan, pengaturan, surat, foto buku) -->
+  <dialog class="sheet-dialog" id="editor-dialog" aria-label="Edit" autofocus tabindex="-1"></dialog>
+
   <div id="toast-container" class="toast-container"></div>
   <audio id="bg-music" loop preload="none"></audio>
 
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script type="module" src="v2/v2.js?v=12"></script>
+  <script type="module" src="v2/v2.js?v=13"></script>
 </body>
 </html>
