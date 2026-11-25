@@ -208,7 +208,6 @@ function renderTime() {
   const now = new Date();
   const dayN = Math.max(1, daysBetween(start, now) + 1);
   $('#hero-day').textContent = dayN; // sticky note "hari ke-N"
-  $('#dive-days').textContent = dayN; // angka di balik jendela hati
   $('#since-kicker').textContent = `sejak ${fmtDate(start)}`;
 
   state.dayN = dayN;
@@ -804,31 +803,28 @@ function setupJourney() {
 }
 
 /* --------------------------------------------------------------------------
-   Transisi hero → Waktu: jendela hati di kertas yang membesar saat digulir,
-   sampai kertas kraft di baliknya memenuhi layar. Hanya ukuran masker yang berubah.
+   Transisi hero → Waktu: lembar kraft Waktu naik menutupi hero seperti kertas baru
+   ditaruh di atasnya. Hero menempel (CSS sticky) begitu bagian bawahnya terlihat,
+   lalu mundur sedikit (mengecil & memudar); lembar Waktu datang agak miring lalu lurus.
    -------------------------------------------------------------------------- */
-function setupDive() {
-  const dive = $('#dive');
-  if (reduceMotion) { dive.classList.add('static'); return; }
-  const inside = $('#dive-inside');
-  const edge = $('#dive-edge');
-  const text = $('#dive-text');
-  const hint = $('#dive-hint');
+function setupStack() {
+  if (reduceMotion) return; // halaman bergulir biasa
+  const hero = $('.hero');
+  const sheet = $('#waktu');
+  document.body.classList.add('stacking');
+  // hero di HP lebih tinggi dari layar: baru menempel setelah bagian bawahnya terlihat
+  const measure = () => hero.style.setProperty('--hero-h', `${hero.offsetHeight}px`);
   let ticking = false;
   const update = () => {
     ticking = false;
-    const r = dive.getBoundingClientRect();
-    if (r.bottom < -50 || r.top > innerHeight + 50) return;
-    const total = Math.max(1, r.height - innerHeight);
-    const p = Math.min(1, Math.max(0, -r.top / total));
-    const from = Math.min(innerWidth, innerHeight) * 0.34;
-    const to = Math.hypot(innerWidth, innerHeight) * 3.4;
-    const s = `${(from + (to - from) * Math.pow(p, 2.4)).toFixed(1)}px`;
-    inside.style.setProperty('--s', s);
-    edge.style.setProperty('--s', s);
-    text.style.setProperty('--t', (0.55 + 0.45 * Math.min(1, p * 1.5)).toFixed(3));
-    hint.style.opacity = Math.max(0, 1 - p * 6).toFixed(2);
-    edge.style.opacity = p > 0.85 ? Math.max(0, (1 - p) / 0.15).toFixed(2) : '1';
+    const top = sheet.getBoundingClientRect().top;
+    // 0 = lembar Waktu mulai naik (di HP dari 70% layar, lihat CSS), 1 = sudah menutupi hero sepenuhnya
+    const start = isPhone() ? innerHeight * 0.7 : innerHeight;
+    const p = Math.min(1, Math.max(0, 1 - top / start));
+    const fade = Math.min(1, Math.max(0, (p - 0.35) / 0.65));
+    hero.style.transform = p > 0 ? `scale(${(1 - 0.06 * p).toFixed(4)})` : '';
+    hero.style.opacity = p > 0 ? (1 - fade * fade).toFixed(3) : '';
+    sheet.style.setProperty('--tilt', `${(-1.6 * Math.pow(1 - p, 1.6)).toFixed(3)}deg`);
   };
   const onScroll = () => {
     if (ticking) return;
@@ -836,7 +832,10 @@ function setupDive() {
     requestAnimationFrame(update);
   };
   addEventListener('scroll', onScroll, { passive: true });
-  addEventListener('resize', onScroll);
+  addEventListener('resize', () => { measure(); onScroll(); });
+  if (document.fonts) document.fonts.ready.then(measure);
+  addEventListener('load', measure);
+  measure();
   update();
 }
 
@@ -1436,7 +1435,7 @@ function init() {
   setupBook();
   setupStrip();
   setupJourney();
-  setupDive();
+  setupStack();
   setupLightbox();
   setupLetter();
   setupCoret();

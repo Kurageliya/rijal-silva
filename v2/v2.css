@@ -225,59 +225,39 @@ button { font: inherit; color: inherit; }
 .letter .link { color: var(--wine); }
 .letter .link.muted { color: var(--ink-soft); }
 
-/* ---------- Transisi hero → Waktu: jendela hati yang digunting di kertas ----------
-   Bagian ini "menempel" selama satu layar; saat digulir, hatinya membesar sampai kertas kraft di baliknya
-   memenuhi layar, lalu bagian Waktu berlanjut dengan kertas yang sama. Hanya ukuran masker yang berubah. */
+/* ---------- Transisi hero → Waktu: lembar kertas baru ditaruh di atas halaman pertama ----------
+   Hero menempel (sticky) begitu bagian bawahnya terlihat, lalu lembar Waktu naik menutupinya: hero mundur
+   sedikit (mengecil & memudar), lembar Waktu datang agak miring lalu lurus. Hanya transform & opacity, ringan di HP.
+   Tanpa JS atau dengan "kurangi gerakan", halaman tetap bergulir biasa. */
 :root {
   --kraft: #d6b994;
   --kraft-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='k'><feTurbulence type='fractalNoise' baseFrequency='0.9 0.35' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.24 0 0 0 0 0.12 0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(%23k)'/></svg>");
-  --heart-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 90'><path d='M50 88 C 22 66, 3 48, 3 27 C 3 12, 14 2, 27 2 C 37 2, 45 8, 50 17 C 55 8, 63 2, 73 2 C 86 2, 97 12, 97 27 C 97 48, 78 66, 50 88 Z'/></svg>");
+  --torn-top: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='14' viewBox='0 0 240 14'><path d='M0 14L0 7L8 4L15 8L22 5L30 9L37 3L45 6L52 10L60 5L67 7L75 3L83 8L90 6L98 10L105 4L113 7L120 3L128 9L135 5L143 8L150 2L158 6L166 9L173 4L181 7L188 10L196 5L203 8L211 3L218 7L226 9L233 5L240 7L240 14Z'/></svg>");
+  --torn-bottom: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='14' viewBox='0 0 240 14'><path d='M0 0L240 0L240 7L233 10L226 5L218 8L211 11L203 6L196 9L188 4L181 8L173 10L166 5L158 8L150 12L143 6L135 9L128 5L120 11L113 7L105 10L98 4L90 8L83 6L75 11L67 7L60 9L52 4L45 8L37 11L30 5L22 9L15 6L8 10L0 7Z'/></svg>");
 }
-.dive { position: relative; height: 170vh; height: 170svh; }
-.dive-stage { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; }
-.dive-inside {
-  --s: 34vmin;
-  position: absolute; inset: 0; display: grid; place-items: center;
-  background-color: var(--kraft); background-image: var(--kraft-image); color: var(--ink);
-  -webkit-mask: var(--heart-mask) center / var(--s) calc(var(--s) * 0.9) no-repeat;
-  mask: var(--heart-mask) center / var(--s) calc(var(--s) * 0.9) no-repeat;
-}
-.dive-text { display: flex; flex-direction: column; align-items: center; transform: scale(var(--t, 0.55)); }
-.dive-text b { font: 400 min(34vmin, 260px)/0.9 'Yellowtail', cursive; color: var(--wine); font-variant-numeric: tabular-nums; }
-.dive-text span { font: 700 min(9vmin, 64px)/1 var(--hand); margin-top: 2vmin; }
-.dive-edge {
-  --s: 34vmin;
-  position: absolute; left: 50%; top: 50%; width: var(--s); height: calc(var(--s) * 0.9); transform: translate(-50%, -50%);
-  overflow: visible; pointer-events: none;
-}
-.dive-edge path { fill: none; stroke: var(--accent-bg); stroke-width: 2.4; stroke-dasharray: 7 6; vector-effect: non-scaling-stroke; }
-.dive-hint {
-  position: absolute; left: 0; right: 0; bottom: 14vh; text-align: center;
-  font: 700 26px var(--hand); color: var(--on-bg-soft); animation: hint-bob 1.6s ease-in-out infinite;
-}
-@keyframes hint-bob { 50% { transform: translateY(6px); } }
-/* "kurangi gerakan" di setelan HP: tanpa zoom, langsung panel kraft */
-.dive.static { height: auto; }
-.dive.static .dive-stage { position: relative; height: 60vh; }
-.dive.static .dive-inside { -webkit-mask: none; mask: none; }
-.dive.static .dive-text { transform: none; }
-.dive.static .dive-edge, .dive.static .dive-hint { display: none; }
+.stack { position: relative; }
+.stacking .hero { position: sticky; top: min(0px, calc(100vh - var(--hero-h, 100vh))); z-index: 0; transform-origin: 50% 80%; }
+.stacking .waktu { will-change: transform; }
 
-/* ---------- Waktu: kertas kraft selebar halaman, tepi bawah sobek ---------- */
+/* ---------- Waktu: selembar kertas kraft di atas meja, tepi atas & bawah sobek ---------- */
 .waktu {
   --ink-soft: #5d4a3b;
   --line: rgba(70, 45, 25, 0.22);
-  position: relative; z-index: 1; padding-top: 40px; color: var(--ink);
+  position: relative; z-index: 1; width: min(1200px, calc(100% - 32px)); margin: 0 auto; padding-top: 72px; color: var(--ink);
   background-color: var(--kraft); background-image: var(--kraft-image);
+  transform: rotate(var(--tilt, 0deg)); transform-origin: 50% 0;
+  /* box-shadow, bukan filter: lembar sebesar ini jauh lebih ringan digambar ulang saat bergeser */
+  box-shadow: 0 -8px 22px -10px rgba(40, 25, 10, 0.3), 0 18px 28px -14px rgba(40, 25, 10, 0.32);
 }
 .waktu .kicker { color: var(--wine); }
 .waktu .wrap { position: relative; }
-.waktu::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -13px; height: 14px; background-color: var(--kraft);
-  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='14' viewBox='0 0 240 14'><path d='M0 0L240 0L240 7L233 10L226 5L218 8L211 11L203 6L196 9L188 4L181 8L173 10L166 5L158 8L150 12L143 6L135 9L128 5L120 11L113 7L105 10L98 4L90 8L83 6L75 11L67 7L60 9L52 4L45 8L37 11L30 5L22 9L15 6L8 10L0 7Z'/></svg>") 0 0 / 240px 14px repeat-x;
-  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='14' viewBox='0 0 240 14'><path d='M0 0L240 0L240 7L233 10L226 5L218 8L211 11L203 6L196 9L188 4L181 8L173 10L166 5L158 8L150 12L143 6L135 9L128 5L120 11L113 7L105 10L98 4L90 8L83 6L75 11L67 7L60 9L52 4L45 8L37 11L30 5L22 9L15 6L8 10L0 7Z'/></svg>") 0 0 / 240px 14px repeat-x;
-  filter: drop-shadow(0 4px 3px rgba(60, 40, 20, 0.18));
-}
+.waktu::before, .waktu::after { content: ''; position: absolute; left: 0; right: 0; height: 14px; background-color: var(--kraft); background-image: var(--kraft-image); }
+.waktu::before { top: -13px; -webkit-mask: var(--torn-top) 0 0 / 240px 14px repeat-x; mask: var(--torn-top) 0 0 / 240px 14px repeat-x; }
+.waktu::after { bottom: -13px; -webkit-mask: var(--torn-bottom) 0 0 / 240px 14px repeat-x; mask: var(--torn-bottom) 0 0 / 240px 14px repeat-x; }
+/* selotip yang "menahan" lembar Waktu di pojok atas */
+.waktu-tape { position: absolute; top: -16px; z-index: 2; width: 110px; height: 30px; pointer-events: none; clip-path: polygon(3% 0, 97% 4%, 100% 30%, 97% 55%, 100% 80%, 96% 100%, 4% 96%, 0 70%, 3% 45%, 0 20%); }
+.waktu-tape.l { left: 6%; background: var(--tape-pink); transform: rotate(-6deg); }
+.waktu-tape.r { right: 6%; background: var(--tape-yellow); transform: rotate(5deg); }
 .together { display: grid; grid-template-columns: auto 1fr; gap: 72px; align-items: center; margin-top: 40px; }
 
 /* Kalender sobek (angka mengecil sendiri kalau sudah ribuan hari) */
@@ -840,7 +820,10 @@ button { font: inherit; color: inherit; }
   .section h2 { font-size: 33px; }
   .desk-only { display: none; }
   .doodle.star { width: 30px; right: -38px; top: -12px; }
-  .waktu { padding-top: 24px; }
+  .waktu { width: calc(100% - 14px); padding-top: 52px; }
+  /* hero di HP lebih tinggi dari layar: baru menempel saat bawahnya di 70% layar, jadi judul & tombol sempat terbaca utuh */
+  .stacking .hero { top: min(0px, calc(70vh - var(--hero-h, 100vh))); }
+  .waktu-tape { width: 84px; height: 24px; top: -12px; }
   .together { grid-template-columns: 1fr; gap: 30px; }
   .calendar { width: 220px; }
   .cal-pages { height: 204px; }

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;800&family=Yellowtail&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="v2.css?v=8">
+  <link rel="stylesheet" href="v2.css?v=10">
   <meta name="theme-color" content="#f4ede3">
   <script>
     // Mode dipasang sebelum halaman tergambar supaya tidak berkedip.
@@ -41,6 +41,8 @@
   </nav>
 
   <main id="top">
+    <!-- hero + Waktu ditumpuk: lembar Waktu naik menutupi hero seperti kertas baru ditaruh di atasnya -->
+    <div class="stack" id="stack">
     <!-- HERO -->
     <header class="hero">
       <!-- coretan pena di sela-sela: versi kertas dari hati-hati di v1, tergambar sendiri saat halaman dibuka -->
@@ -90,22 +92,10 @@
       </div>
     </header>
 
-    <!-- TRANSISI hero → waktu: jendela hati yang digunting di kertas, makin besar saat digulir -->
-    <div class="dive" id="dive" aria-hidden="true">
-      <div class="dive-stage">
-        <div class="dive-inside" id="dive-inside">
-          <div class="dive-text" id="dive-text">
-            <b id="dive-days">1</b>
-            <span>hari bersama ♡</span>
-          </div>
-        </div>
-        <svg class="dive-edge" id="dive-edge" viewBox="0 0 100 90" preserveAspectRatio="none"><path d="M50 88 C 22 66, 3 48, 3 27 C 3 12, 14 2, 27 2 C 37 2, 45 8, 50 17 C 55 8, 63 2, 73 2 C 86 2, 97 12, 97 27 C 97 48, 78 66, 50 88 Z"/></svg>
-        <p class="dive-hint" id="dive-hint">geser pelan-pelan ↓</p>
-      </div>
-    </div>
-
-    <!-- WAKTU: selembar kertas kraft selebar halaman -->
+    <!-- WAKTU: selembar kertas kraft yang ditaruh di atas halaman pertama -->
     <section class="section waktu" id="waktu">
+      <span class="waktu-tape l" aria-hidden="true"></span>
+      <span class="waktu-tape r" aria-hidden="true"></span>
       <div class="wrap">
         <div class="kicker reveal" id="since-kicker">sejak 15 Februari 2026</div>
         <h2 class="reveal">Sudah selama ini</h2>
@@ -166,6 +156,8 @@
             </div>
       </div>
     </section>
+
+    </div><!-- /.stack -->
 
     <!-- ALBUM -->
     <section class="section" id="album">
@@ -293,6 +285,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script type="module" src="v2.js?v=8"></script>
+  <script type="module" src="v2.js?v=10"></script>
 </body>
 </html>
