@@ -665,7 +665,32 @@ function centerHang(i, smooth = true) {
   const el = $(`.hang[data-i="${i}"]`);
   if (!el) return;
   const box = $('#line-scroll');
-  box.scrollTo({ left: el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2, behavior: smooth ? 'smooth' : 'auto' });
+  const max = box.scrollWidth - box.clientWidth;
+  const left = Math.max(0, Math.min(max, el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2));
+  if (Math.abs(left - box.scrollLeft) < 2) return;
+  // Geseran ini dari kode: catat tujuannya supaya tidak dianggap geseran pengguna sampai tiba.
+  state.lineTarget = left;
+  clearTimeout(state.lineTargetTimer);
+  state.lineTargetTimer = setTimeout(() => { state.lineTarget = null; }, 3000);
+  box.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' });
+}
+
+/**
+ * Saat tali digeser pengguna, kartu cerita ikut berganti ke foto yang sedang di tengah.
+ * Titik bacanya ikut bergeser: di ujung kiri memilih foto pertama, di ujung kanan foto terakhir.
+ */
+function pickStoryFromLine() {
+  const box = $('#line-scroll');
+  const max = box.scrollWidth - box.clientWidth;
+  const ratio = max > 0 ? box.scrollLeft / max : 0.5;
+  const reading = box.scrollLeft + box.clientWidth * ratio;
+  let best = null;
+  let bestDistance = Infinity;
+  for (const el of $$('.hang')) {
+    const distance = Math.abs(el.offsetLeft + el.offsetWidth / 2 - reading);
+    if (distance < bestDistance) { bestDistance = distance; best = el; }
+  }
+  if (best && Number(best.dataset.i) !== state.storyIndex) selectStory(Number(best.dataset.i), { center: false });
 }
 
 function setStoryPhoto(n, fade = true) {
@@ -728,6 +753,21 @@ function renderStory() {
 function setupStory() {
   const box = $('#line-scroll');
   const dragged = enableDragScroll(box);
+  let settle = null;
+  box.addEventListener('scroll', () => {
+    if (state.lineTarget != null) {
+      // geseran dari kode masih berjalan; catatan dihapus setelah tali diam sebentar
+      clearTimeout(state.lineTargetSettle);
+      state.lineTargetSettle = setTimeout(() => { state.lineTarget = null; }, 220);
+      return;
+    }
+    clearTimeout(settle);
+    settle = setTimeout(pickStoryFromLine, 140);
+  }, { passive: true });
+  // begitu pengguna menyentuh tali, geseran berikutnya miliknya
+  for (const type of ['pointerdown', 'touchstart', 'wheel']) {
+    box.addEventListener(type, () => { state.lineTarget = null; }, { passive: true });
+  }
   $('#line-track').addEventListener('click', (e) => {
     const hang = e.target.closest('.hang');
     if (!hang || dragged()) return;
