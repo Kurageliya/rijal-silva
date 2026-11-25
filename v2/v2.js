@@ -987,39 +987,46 @@ function setupLetter() {
 }
 
 /* --------------------------------------------------------------------------
-   Tema: dipilih dari tombol palet. Pilihan ditulis ke link (?tema=...) supaya
-   link yang dikirim langsung menampilkan tema yang sama, dan diingat di perangkat ini.
+   Mode gelap: tombol bulan/matahari. Tanpa pilihan, ikut setelan HP/laptop
+   (dipasang lebih awal oleh skrip kecil di <head>).
    -------------------------------------------------------------------------- */
-const TEMA_BAR = { pink: '#f8dce2', warna: '#f6d3da', gelap: '#1d4436', krem: '#f4ede3' };
+const BAR_COLOR = { krem: '#f4ede3', gelap: '#1d4436' };
 
-function applyTema(tema, save) {
-  if (!TEMA_BAR[tema]) tema = 'pink';
-  document.documentElement.dataset.tema = tema;
-  $('meta[name="theme-color"]').setAttribute('content', TEMA_BAR[tema]); // warna bilah alamat di HP
-  $$('#tema-pop button').forEach((b) => b.classList.toggle('on', b.dataset.tema === tema));
-  if (!save) return;
-  try { localStorage.setItem('v2_tema', tema); } catch (e) { /* tidak wajib */ }
-  const url = new URL(location.href);
-  url.searchParams.set('tema', tema);
-  history.replaceState(null, '', url);
+function applyMode(mode) {
+  document.documentElement.dataset.tema = mode;
+  $('meta[name="theme-color"]').setAttribute('content', BAR_COLOR[mode]); // warna bilah alamat di HP
+  const dark = mode === 'gelap';
+  const btn = $('#btn-mode');
+  btn.innerHTML = `<i class="fa-solid fa-${dark ? 'sun' : 'moon'}"></i>`;
+  btn.title = dark ? 'Mode terang' : 'Mode gelap';
+  btn.setAttribute('aria-label', btn.title);
 }
 
-function setupTema() {
-  const btn = $('#btn-tema');
-  const pop = $('#tema-pop');
-  const fromLink = new URLSearchParams(location.search).get('tema');
-  applyTema(document.documentElement.dataset.tema, Boolean(fromLink && TEMA_BAR[fromLink]));
-  const toggle = (open) => {
-    pop.hidden = !open;
-    btn.setAttribute('aria-expanded', String(open));
-  };
-  btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(pop.hidden); });
-  $$('button', pop).forEach((b) => b.addEventListener('click', () => {
-    applyTema(b.dataset.tema, true);
-    setTimeout(() => toggle(false), 180);
-  }));
-  document.addEventListener('click', (e) => { if (!pop.hidden && !pop.contains(e.target)) toggle(false); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) { toggle(false); btn.focus(); } });
+function setupMode() {
+  let chosen = null;
+  try { chosen = localStorage.getItem('v2_tema'); } catch (e) { /* tidak wajib */ }
+  const url = new URL(location.href);
+  const fromLink = url.searchParams.get('tema');
+  if (fromLink === 'gelap' || fromLink === 'krem') {
+    chosen = fromLink;
+    try { localStorage.setItem('v2_tema', chosen); } catch (e) { /* tidak wajib */ }
+  }
+  if (fromLink !== null) { // link lama (?tema=pink dst.) dibersihkan, pilihannya sudah diingat
+    url.searchParams.delete('tema');
+    history.replaceState(null, '', url);
+  }
+  if (chosen !== 'gelap' && chosen !== 'krem') chosen = null;
+  applyMode(document.documentElement.dataset.tema === 'gelap' ? 'gelap' : 'krem');
+
+  $('#btn-mode').addEventListener('click', () => {
+    chosen = document.documentElement.dataset.tema === 'gelap' ? 'krem' : 'gelap';
+    try { localStorage.setItem('v2_tema', chosen); } catch (e) { /* tidak wajib */ }
+    applyMode(chosen);
+  });
+  // belum pernah memilih: ikut kalau setelan HP/laptop berganti (mis. otomatis gelap di malam hari)
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (!chosen) applyMode(e.matches ? 'gelap' : 'krem');
+  });
 }
 
 /* --------------------------------------------------------------------------
@@ -1073,7 +1080,7 @@ function renderSettings() {
 }
 
 function init() {
-  setupTema();
+  setupMode();
   $$('.reveal').forEach(watch);
   renderSettings();
   renderMemories();
