@@ -208,35 +208,54 @@ function renderTime() {
   const now = new Date();
   const dayN = Math.max(1, daysBetween(start, now) + 1);
   $('#hero-day').textContent = dayN; // sticky note "hari ke-N"
+  $('#dive-days').textContent = dayN; // angka di balik jendela hati
   $('#since-kicker').textContent = `sejak ${fmtDate(start)}`;
 
   state.dayN = dayN;
   const built = Number($('#cal-pages').dataset.n || 0);
   if (built !== dayN && !tearing) buildCalendar(false); // pertama kali, atau lewat tengah malam
 
-  const u = calculateTimeUnits(start, now);
-  const years = Number(u.years), months = Number(u.months), days = Number(u.days);
-  const parts = [years && `${years} tahun`, months && `${months} bulan`, `${days} hari`].filter(Boolean).join(' ');
-  $('#since').innerHTML = `<strong>${parts}</strong> sejak ${fmtLong(start)}, jam ${pad(start.getHours())}.${pad(start.getMinutes())}.`;
+  $('#since').innerHTML = `<strong>Sejak ${fmtLong(start)}</strong>, jam ${pad(start.getHours())}.${pad(start.getMinutes())}. Sampai detik ini sudah:`;
+  renderTrail(start, now, dayN);
+}
 
-  const marks = [];
-  for (const n of [100, 200, 300, 500, 1000]) marks.push({ label: `Hari ke-${n}`, date: new Date(midnight(start).getTime() + (n - 1) * DAY) });
-  for (const y of [1, 2, 3]) marks.push({ label: `${y} tahun`, date: addMonths(start, y * 12) });
-  const upcoming = marks.filter((m) => midnight(m.date) >= midnight(now)).sort((a, b) => a.date - b.date).slice(0, 3);
-  const list = $('#milestones');
-  const html = upcoming.map((m, i) => {
-    const left = daysBetween(now, m.date);
-    const pct = Math.min(100, Math.max(2, ((now - start) / (m.date - start)) * 100));
-    return `<li class="reveal" style="transition-delay:${i * 0.1}s" data-pct="${pct.toFixed(1)}">
-      <b>${m.label}</b><span>${fmtLong(m.date)}</span><em>${left === 0 ? 'hari ini!' : `${left} hari lagi`}</em><i></i></li>`;
-  }).join('');
-  if (html === list.dataset.html) return; // hanya berubah sekali sehari
-  list.dataset.html = html;
-  list.innerHTML = html;
-  $$('li', list).forEach((li) => {
-    li.addEventListener('revealed', () => { $('i', li).style.width = li.dataset.pct + '%'; }, { once: true });
-    watch(li);
-  });
+/**
+ * Semua target, tanpa batas: hari ke-100 sampai 1000, lalu tiap 500 hari, angka kembar
+ * (111, 222, …, 1111, 2222, …), dan tiap tahun jadian. Jadi ribuan hari pun tetap ada target berikutnya.
+ */
+function milestones(start) {
+  const base = midnight(start).getTime();
+  const days = new Set([100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 111, 222, 333, 444, 555, 666, 777, 888, 999]);
+  for (let n = 1500; n <= 20000; n += 500) days.add(n);
+  for (let k = 1; k <= 9; k++) days.add(1111 * k);
+  const list = [...days].map((n) => ({ label: `Hari ke-${n}`, date: new Date(base + (n - 1) * DAY) }));
+  for (let y = 1; y <= 60; y++) list.push({ label: `${y} tahun`, date: addMonths(start, y * 12) });
+  return list.sort((a, b) => a.date - b.date);
+}
+
+/** Jalur hari: target terakhir yang sudah lewat, jarum "hari ini", lalu tiga target berikutnya. */
+function renderTrail(start, now, dayN) {
+  const today = midnight(now);
+  const all = milestones(start);
+  const passed = all.filter((m) => midnight(m.date) < today);
+  const done = passed.length ? passed[passed.length - 1] : { label: 'Hari pertama', date: midnight(start) };
+  const next = all.filter((m) => midnight(m.date) >= today).slice(0, 3);
+  const span = midnight(next[0].date) - midnight(done.date);
+  const f = span > 0 ? Math.min(1, Math.max(0, (today - midnight(done.date)) / span)) : 1;
+  const stop = (m, cls, em) => `<li class="${cls}"><span class="trail-dot">${cls === 'done' ? '♡' : ''}</span>`
+    + `<b>${m.label}</b><small>${fmtShort(m.date)}</small><em>${em}</em></li>`;
+  const html = stop(done, 'done', 'sudah lewat')
+    + next.map((m) => {
+      const left = daysBetween(now, m.date);
+      return stop(m, 'next', left === 0 ? 'hari ini!' : `${left} hari lagi`);
+    }).join('')
+    + `<li class="trail-now" aria-hidden="true"><span>hari ini · ke-${dayN}</span><i></i></li>`;
+  const list = $('#trail-stops');
+  list.style.setProperty('--f', f.toFixed(3));
+  if (html !== list.dataset.html) { // berubah sekali sehari
+    list.dataset.html = html;
+    list.innerHTML = html;
+  }
 }
 
 /* Kalender sobek: beberapa hari terakhir tersobek satu per satu sampai hari ini */
@@ -244,7 +263,7 @@ let tearing = false;
 
 function calendarPage(n) {
   const d = new Date(midnight(anniversary()).getTime() + (n - 1) * DAY);
-  return `<div class="cal-page"><small>hari ke</small><b>${n}</b>`
+  return `<div class="cal-page"><small>hari ke</small><b class="d${String(n).length}">${n}</b>` // d4/d5: angka mengecil
     + `<span>${d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}</span></div>`;
 }
 
@@ -279,20 +298,54 @@ function setupCalendar() {
   watch(cal);
 }
 
-/** Tepi atas & bawah kertas kraft dibuat sobek (acak tapi tetap sama tiap kunjungan). */
-function tornEdges(el, seed = 11) {
-  let s = seed;
-  const rand = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-  const top = [];
-  const bottom = [];
-  for (let x = 0; x <= 100; x += 2) top.push(`${x}% ${(1 + rand() * 9).toFixed(1)}px`);
-  for (let x = 100; x >= 0; x -= 2) bottom.push(`${x}% calc(100% - ${(1 + rand() * 9).toFixed(1)}px)`);
-  el.style.clipPath = `polygon(${top.join(', ')}, ${bottom.join(', ')})`;
+/* Jam kertas: kartu angka yang membalik (separuh atas jatuh) tiap kali nilainya berubah */
+const FLIP_UNITS = [['years', 'tahun'], ['months', 'bulan'], ['days', 'hari'], null, ['hours', 'jam'], ['minutes', 'menit'], ['seconds', 'detik']];
+const FLIP_TILT = [-1.5, 1, -0.5, 0, 1.2, -1, 0.6];
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let flipVisible = false;
+
+function buildFlipclock() {
+  const box = $('#flipclock');
+  box.innerHTML = FLIP_UNITS.map((u, i) => (u
+    ? `<div class="flip" data-u="${u[0]}" style="--tilt:${FLIP_TILT[i]}deg"><div class="flip-card">`
+      + '<span class="f-top"><i></i></span><span class="f-bot"><i></i></span><span class="f-leaf-top"><i></i></span><span class="f-leaf-bot"><i></i></span>'
+      + `</div><small>${u[1]}</small></div>`
+    : '<span class="flip-and">dan</span>')).join('');
+  new IntersectionObserver(([entry]) => { flipVisible = entry.isIntersecting; }).observe(box);
+}
+
+function setFlip(el, value) {
+  const card = $('.flip-card', el);
+  if (card.dataset.v === value) return;
+  const [top, bot, leafTop, leafBot] = $$('i', card);
+  card.classList.toggle('wide', value.length > 2);
+  // pertama kali, tab tidak terlihat, atau jam di luar layar: langsung ganti tanpa animasi
+  if (card.dataset.v === undefined || document.hidden || !flipVisible || reduceMotion) {
+    card.dataset.v = value;
+    top.textContent = bot.textContent = leafTop.textContent = leafBot.textContent = value;
+    return;
+  }
+  card.dataset.v = value;
+  top.textContent = value; // separuh atas baru sudah menunggu di belakang
+  leafBot.textContent = value; // sisi belakang lembar yang jatuh
+  card.classList.remove('go');
+  void card.offsetWidth;
+  card.classList.add('go');
+  clearTimeout(card.flipTimer);
+  card.flipTimer = setTimeout(() => {
+    bot.textContent = value;
+    leafTop.textContent = value;
+    card.classList.remove('go');
+  }, 540);
 }
 
 function tickClock() {
   const u = calculateTimeUnits(anniversary(), new Date());
-  $('#ticker').innerHTML = `dan <b>${u.hours}</b> jam <b>${u.minutes}</b> menit <b>${u.seconds}</b> detik`;
+  for (const el of $$('#flipclock .flip')) {
+    const key = el.dataset.u;
+    const n = Number(u[key]);
+    setFlip(el, ['hours', 'minutes', 'seconds'].includes(key) ? pad(n) : String(n));
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -579,7 +632,10 @@ function setupLightbox() {
 }
 
 /* --------------------------------------------------------------------------
-   Cerita: jemuran foto (urut dari yang paling lama) + kartu cerita
+   Cerita: jalan cerita (urut dari yang paling lama).
+   Tiap kenangan: foto diselipkan di saku kertas (ketuk = tarik keluar & foto lain ikut terbuka,
+   ketuk fotonya lagi = lihat penuh, ketuk sakunya = simpan lagi) + kartu catatan bergaris.
+   Garis putus-putus yang menghubungkan saku tergambar mengikuti guliran.
    -------------------------------------------------------------------------- */
 const isPhone = () => matchMedia('(max-width: 860px)').matches;
 
@@ -590,222 +646,198 @@ function storyList() {
   return (featured.length ? featured : oldestFirst).slice(0, 10);
 }
 
-function renderLine() {
-  const list = state.storyList;
-  const track = $('#line-track');
-  if (!list.length) { track.innerHTML = '<p class="empty">Belum ada cerita.</p>'; return; }
+const TAPES = ['yellow', 'pink', 'green'];
 
-  // Di HP foto dibuat hampir selebar layar supaya tidak terlihat kecil; foto sebelah tetap mengintip.
-  const narrow = isPhone();
-  const itemW = narrow ? Math.round(Math.min(320, innerWidth * 0.74)) : 190;
-  const step = itemW + (narrow ? 30 : 42);
-  const pad = narrow ? 18 : Math.max(24, (innerWidth - 1080) / 2 + 24);
-
-  // posisi tiap benda di tali: bendera bulan, foto, lalu tulisan "bersambung…"
-  // (di HP bendera sedikit diselipkan di belakang foto supaya foto pertama utuh terlihat)
-  const parts = [];
-  let x = pad + (narrow ? 14 : 34);
+function renderJourney() {
+  const list = storyList();
+  state.storyList = list;
+  const box = $('#journey-stops');
+  if (!list.length) {
+    box.innerHTML = '<p class="empty-journey">Belum ada cerita.</p>';
+    $('#journey-path').innerHTML = '';
+    return;
+  }
   let lastMonth = '';
-  list.forEach((mem, i) => {
+  let flagN = 0;
+  box.innerHTML = list.map((mem, i) => {
+    const imgs = getMemoryImages(mem).map(asset);
     const d = parseDay(mem.date);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
-    if (key !== lastMonth) {
-      parts.push({ type: 'flag', x, label: d.toLocaleDateString('id-ID', { month: 'short' }) });
-      x += narrow ? 58 : 94;
-      lastMonth = key;
-    }
-    parts.push({ type: 'item', x, i });
-    x += step;
+    const flag = key !== lastMonth
+      ? `<span class="month-flag f${flagN++ % 4}">${escapeHtml(d.toLocaleDateString('id-ID', { month: 'short' }))}</span>`
+      : '';
+    lastMonth = key;
+    const extras = imgs.slice(1, 3).map((url, k) =>
+      `<figure class="print extra e${k + 1}"><img src="${escapeHtml(url)}" alt="" loading="lazy" draggable="false"></figure>`).join('');
+    const when = `${d.toLocaleDateString('id-ID', { weekday: 'long' })}${mem.time ? ` · jam ${escapeHtml(mem.time.replace(':', '.'))}` : ''}`;
+    const title = escapeHtml(mem.title || 'Kenangan');
+    return `<article class="stop ${i % 2 ? 'right' : 'left'}" data-i="${i}">
+      ${flag}
+      <div class="pocket-wrap" role="button" tabindex="0" aria-label="Tarik foto ${title} dari saku">
+        ${extras}
+        <figure class="print pull" style="--r:${i % 2 ? 2 : -2}deg"><img src="${escapeHtml(imgs[0] || '')}" alt="" loading="lazy" draggable="false"></figure>
+        <div class="pocket">
+          <span class="pocket-date">${escapeHtml(d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }))}</span>
+          <span class="pocket-label"><span class="pull-me">tarik ↑</span><span class="tuck">simpan ↓</span></span>
+          ${imgs.length > 1 ? `<span class="pocket-count">${imgs.length} foto</span>` : ''}
+        </div>
+      </div>
+      <div class="note-wrap">
+        <span class="tape ${TAPES[i % TAPES.length]}"></span>
+        <div class="note">
+          <div class="note-date"><b>${pad(d.getDate())}</b><span><strong>${d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</strong>${when}</span></div>
+          <h3>${title}</h3>
+          ${mem.category ? `<span class="note-cat">${escapeHtml(String(mem.category).toLowerCase())}</span>` : ''}
+          ${mem.caption ? `<p class="clamp">${escapeHtml(mem.caption)}</p><button class="link note-more" hidden>Baca semua</button>` : ''}
+        </div>
+      </div>
+    </article>`;
+  }).join('') + '<p class="journey-end">bersambung…</p>';
+
+  $$('.stop', box).forEach((stop) => {
+    stop.addEventListener('revealed', checkClamps, { once: true });
+    watch(stop);
   });
-  parts.push({ type: 'end', x: x + 6 });
-  const x0 = pad;
-  const x1 = x + 190;
-  const W = x1 + pad;
+  requestAnimationFrame(() => { checkClamps(); drawJourneyPath(); });
+}
 
-  // tali melengkung (kurva kuadrat) di antara dua tiang
-  const y0 = 34;
-  const sag = narrow ? 34 : 58;
-  const ropeY = (px) => {
-    const t = Math.min(1, Math.max(0, (px - x0) / (x1 - x0)));
-    return (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * (y0 + sag * 2) + t * t * y0;
-  };
-  const angleAt = (px) => Math.atan((ropeY(px + 10) - ropeY(px - 10)) / 20) * (180 / Math.PI);
+/** Tombol "Baca semua" hanya muncul kalau catatannya memang terpotong. */
+function checkClamps() {
+  for (const p of $$('#journey-stops .note p.clamp')) {
+    const more = p.nextElementSibling;
+    if (more) more.hidden = p.scrollHeight <= p.clientHeight + 2;
+  }
+}
 
-  let html = `<svg class="rope" width="${W}" height="200" viewBox="0 0 ${W} 200"><path d="M${x0} ${y0} Q ${(x0 + x1) / 2} ${y0 + sag * 2} ${x1} ${y0}"/></svg>`
-    + `<div class="post" style="left:${x0 - 6}px"></div><div class="post" style="left:${x1 - 5}px"></div>`;
-  let flagN = 0;
-  for (const part of parts) {
-    if (part.type === 'flag') {
-      const cx = part.x + 37;
-      html += `<div class="flag f${flagN++ % 4}" style="left:${part.x}px;top:${ropeY(cx) - 1}px;transform:rotate(${angleAt(cx).toFixed(1)}deg)">`
-        + `<div>${escapeHtml(part.label)}</div></div>`;
-    } else if (part.type === 'end') {
-      html += `<div class="line-end" style="left:${part.x}px;top:${ropeY(part.x + 60)}px;transform:rotate(${angleAt(part.x + 60).toFixed(1)}deg)">bersambung…</div>`;
+/** Garis putus-putus melewati tengah tiap saku (di HP: menyusuri pinggir kiri), berakhir di "bersambung…". */
+function drawJourneyPath() {
+  const journey = $('#journey');
+  const svg = $('#journey-path');
+  const stops = $$('#journey-stops .stop');
+  if (!stops.length) { svg.innerHTML = ''; return; }
+  const jr = journey.getBoundingClientRect();
+  const narrow = isPhone();
+  const pts = stops.map((s) => {
+    const w = $('.pocket-wrap', s).getBoundingClientRect();
+    return narrow ? [6, w.top - jr.top + w.height * 0.4] : [w.left - jr.left + w.width / 2, w.top - jr.top + w.height * 0.5];
+  });
+  const end = $('.journey-end', journey).getBoundingClientRect();
+  pts.push(narrow ? [6, end.top - jr.top + 22] : [end.left - jr.left + end.width / 2, end.top - jr.top + 16]);
+  let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  for (let i = 1; i < pts.length; i++) {
+    const [ax, ay] = pts[i - 1];
+    const [bx, by] = pts[i];
+    const dy = (by - ay) * 0.55;
+    const wob = narrow ? (i % 2 ? 9 : -9) : 0; // di HP garisnya sedikit meliuk
+    d += ` C${(ax + wob).toFixed(1)} ${(ay + dy).toFixed(1)}, ${(bx + wob).toFixed(1)} ${(by - dy).toFixed(1)}, ${bx.toFixed(1)} ${by.toFixed(1)}`;
+  }
+  svg.setAttribute('viewBox', `0 0 ${jr.width.toFixed(0)} ${jr.height.toFixed(0)}`);
+  svg.innerHTML = `<defs><mask id="journey-mask" maskUnits="userSpaceOnUse" x="-50" y="-50" width="${(jr.width + 100).toFixed(0)}" height="${(jr.height + 100).toFixed(0)}">`
+    + `<path class="ink" d="${d}"/></mask></defs><path class="trace" d="${d}" mask="url(#journey-mask)"/>`;
+  const ink = $('.ink', svg);
+  state.journeyLen = ink.getTotalLength();
+  ink.style.strokeDasharray = `${state.journeyLen}`;
+  updateJourneyProgress();
+}
+
+/** Bagian garis yang sudah "tergambar" = sampai tiga perempat tinggi layar. */
+function updateJourneyProgress() {
+  const ink = $('#journey-path .ink');
+  if (!ink) return;
+  const r = $('#journey').getBoundingClientRect();
+  const f = reduceMotion ? 1 : Math.min(1, Math.max(0, (innerHeight * 0.75 - r.top) / r.height));
+  ink.style.strokeDashoffset = `${(state.journeyLen * (1 - f)).toFixed(1)}`;
+}
+
+function setPocket(wrap, out) {
+  wrap.classList.toggle('pulled', out);
+  wrap.setAttribute('aria-label', out ? 'Foto sudah ditarik. Ketuk foto untuk melihat penuh, ketuk saku untuk menyimpan.' : 'Tarik foto dari saku');
+  if (out) playPaperRustle();
+}
+
+function setupJourney() {
+  const box = $('#journey-stops');
+  box.addEventListener('click', (e) => {
+    const more = e.target.closest('.note-more');
+    if (more) {
+      const clamped = more.previousElementSibling.classList.toggle('clamp');
+      more.textContent = clamped ? 'Baca semua' : 'Tutup';
+      requestAnimationFrame(drawJourneyPath);
+      return;
+    }
+    const wrap = e.target.closest('.pocket-wrap');
+    if (!wrap) return;
+    if (!wrap.classList.contains('pulled')) { setPocket(wrap, true); return; }
+    const fig = e.target.closest('.print');
+    const mem = state.storyList[Number(wrap.closest('.stop').dataset.i)];
+    if (fig && mem) {
+      const n = fig.classList.contains('e1') ? 1 : fig.classList.contains('e2') ? 2 : 0;
+      openLightbox(mem, n, fig);
     } else {
-      const mem = list[part.i];
-      const imgs = getMemoryImages(mem);
-      const cx = part.x + itemW / 2;
-      const tilt = angleAt(cx) + (part.i % 2 ? 1.5 : -1.5);
-      const d = parseDay(mem.date);
-      html += `<div class="hang" data-i="${part.i}" style="left:${part.x}px;top:${ropeY(cx) + 4}px;--a:${tilt.toFixed(1)}deg;--dur:${(4 + (part.i % 3) * 0.7).toFixed(1)}s;--delay:-${(part.i * 0.9).toFixed(1)}s">
-        <span class="peg"></span>
-        <figure class="print">
-          <img src="${escapeHtml(asset(imgs[0] || ''))}" alt="" loading="lazy" draggable="false">
-          ${imgs.length > 1 ? `<span class="many">${imgs.length} foto</span>` : ''}
-          <figcaption class="when">${d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</figcaption>
-        </figure>
-        <div class="hang-tag">${escapeHtml(mem.title || 'Kenangan')}</div>
-      </div>`;
+      setPocket(wrap, false);
     }
-  }
-  track.style.width = `${W}px`;
-  // tinggi: tali paling turun (y0 + sag) + foto persegi + tanggal + label, sisa untuk ayunan & foto aktif yang membesar
-  track.style.height = `${y0 + sag + itemW + (narrow ? 150 : 160)}px`;
-  track.style.setProperty('--hang-w', `${itemW}px`);
-  track.innerHTML = html;
-  $$('.hang', track).forEach((el) => el.classList.toggle('on', Number(el.dataset.i) === state.storyIndex));
-}
-
-function centerHang(i, smooth = true) {
-  const el = $(`.hang[data-i="${i}"]`);
-  if (!el) return;
-  const box = $('#line-scroll');
-  const max = box.scrollWidth - box.clientWidth;
-  const left = Math.max(0, Math.min(max, el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2));
-  if (Math.abs(left - box.scrollLeft) < 2) return;
-  // Geseran ini dari kode: catat tujuannya supaya tidak dianggap geseran pengguna sampai tiba.
-  state.lineTarget = left;
-  clearTimeout(state.lineTargetTimer);
-  state.lineTargetTimer = setTimeout(() => { state.lineTarget = null; }, 3000);
-  box.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' });
-}
-
-/**
- * Saat tali digeser pengguna, kartu cerita ikut berganti ke foto yang sedang di tengah.
- * Titik bacanya ikut bergeser: di ujung kiri memilih foto pertama, di ujung kanan foto terakhir.
- */
-function pickStoryFromLine() {
-  const box = $('#line-scroll');
-  const max = box.scrollWidth - box.clientWidth;
-  const ratio = max > 0 ? box.scrollLeft / max : 0.5;
-  const reading = box.scrollLeft + box.clientWidth * ratio;
-  let best = null;
-  let bestDistance = Infinity;
-  for (const el of $$('.hang')) {
-    const distance = Math.abs(el.offsetLeft + el.offsetWidth / 2 - reading);
-    if (distance < bestDistance) { bestDistance = distance; best = el; }
-  }
-  if (best && Number(best.dataset.i) !== state.storyIndex) selectStory(Number(best.dataset.i), { center: false });
-}
-
-function setStoryPhoto(n, fade = true) {
-  const mem = state.storyList[state.storyIndex];
-  if (!mem) return;
-  const imgs = getMemoryImages(mem).map(asset);
-  state.storyPhoto = Math.max(0, Math.min(imgs.length - 1, n));
-  const img = $('#story-img');
-  img.src = imgs[state.storyPhoto] || '';
-  $$('#story-thumbs button').forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === state.storyPhoto));
-  if (fade) {
-    img.classList.remove('story-img-fade');
-    void img.offsetWidth;
-    img.classList.add('story-img-fade');
-  }
-}
-
-function selectStory(i, { center = true, animate = true } = {}) {
-  const list = state.storyList;
-  if (!list.length) return;
-  state.storyIndex = Math.max(0, Math.min(list.length - 1, i));
-  const mem = list[state.storyIndex];
-  const imgs = getMemoryImages(mem).map(asset);
-  const d = parseDay(mem.date);
-
-  $('#story-day').textContent = pad(d.getDate());
-  $('#story-when').innerHTML = `<strong>${d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</strong>`
-    + `${d.toLocaleDateString('id-ID', { weekday: 'long' })}${mem.time ? ` · jam ${escapeHtml(mem.time.replace(':', '.'))}` : ''}`;
-  $('#story-title').textContent = mem.title || '';
-  $('#story-cat').textContent = String(mem.category || '').toLowerCase();
-  $('#story-caption').textContent = mem.caption || '';
-  $('#story-count').textContent = `${state.storyIndex + 1} / ${list.length}`;
-  $('#story-prev').disabled = state.storyIndex === 0;
-  $('#story-next').disabled = state.storyIndex === list.length - 1;
-
-  $('#story-thumbs').innerHTML = imgs.length > 1
-    ? imgs.map((url, n) => `<button data-n="${n}" aria-label="Foto ${n + 1}"><img src="${escapeHtml(url)}" alt="" loading="lazy"></button>`).join('')
-    : '';
-  $('#story-card').classList.toggle('single', imgs.length < 2);
-  // Di HP kartu tidak punya foto besar (fotonya di jemuran), jadi thumbnail langsung membuka foto penuh.
-  $$('#story-thumbs button').forEach((b) => b.addEventListener('click', () => {
-    if (isPhone()) openLightbox(mem, Number(b.dataset.n), b);
-    else setStoryPhoto(Number(b.dataset.n));
-  }));
-  setStoryPhoto(0, false);
-
-  $$('.hang').forEach((el) => el.classList.toggle('on', Number(el.dataset.i) === state.storyIndex));
-  if (animate) {
-    for (const el of [$('#story-photo'), $('#story-text')]) {
-      el.classList.remove('swap-in');
-      void el.offsetWidth;
-      el.classList.add('swap-in');
+  });
+  box.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('pocket-wrap')) {
+      e.preventDefault();
+      setPocket(e.target, !e.target.classList.contains('pulled'));
     }
-  }
-  if (center) centerHang(state.storyIndex);
-}
+  });
 
-function renderStory() {
-  state.storyList = storyList();
-  state.storyIndex = Math.min(state.storyIndex || 0, Math.max(0, state.storyList.length - 1));
-  renderLine();
-  selectStory(state.storyIndex, { center: false, animate: false });
-}
-
-function setupStory() {
-  const box = $('#line-scroll');
-  const dragged = enableDragScroll(box);
-  let settle = null;
-  box.addEventListener('scroll', () => {
-    if (state.lineTarget != null) {
-      // geseran dari kode masih berjalan; catatan dihapus setelah tali diam sebentar
-      clearTimeout(state.lineTargetSettle);
-      state.lineTargetSettle = setTimeout(() => { state.lineTarget = null; }, 220);
-      return;
-    }
-    clearTimeout(settle);
-    settle = setTimeout(pickStoryFromLine, 140);
+  let ticking = false;
+  addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => { updateJourneyProgress(); ticking = false; });
   }, { passive: true });
-  // begitu pengguna menyentuh tali, geseran berikutnya miliknya
-  for (const type of ['pointerdown', 'touchstart', 'wheel']) {
-    box.addEventListener(type, () => { state.lineTarget = null; }, { passive: true });
-  }
-  $('#line-track').addEventListener('click', (e) => {
-    const hang = e.target.closest('.hang');
-    if (!hang || dragged()) return;
-    const i = Number(hang.dataset.i);
-    if (i === state.storyIndex) { // foto yang sudah dipilih: buka penuh
-      const mem = state.storyList[i];
-      if (mem) openLightbox(mem, 0, $('.print', hang));
-      return;
-    }
-    selectStory(i);
-    // kalau kartu cerita masih di bawah layar, gulir pelan supaya perubahannya terlihat
-    const card = $('#story-card').getBoundingClientRect();
-    if (card.top > innerHeight - 160) scrollBy({ top: card.top - innerHeight + Math.min(card.height, innerHeight - 120) + 24, behavior: 'smooth' });
-  });
-  $('#story-prev').addEventListener('click', () => selectStory(state.storyIndex - 1));
-  $('#story-next').addEventListener('click', () => selectStory(state.storyIndex + 1));
-  $('#story-photo').addEventListener('click', () => {
-    const mem = state.storyList[state.storyIndex];
-    if (mem) openLightbox(mem, state.storyPhoto || 0, $('#story-photo'));
-  });
   let resizeTimer = null;
   let lastWidth = innerWidth;
   addEventListener('resize', () => {
-    if (innerWidth === lastWidth) return; // HP: address bar naik-turun tidak perlu render ulang
+    if (innerWidth === lastWidth) return; // HP: address bar naik-turun tidak perlu menggambar ulang
     lastWidth = innerWidth;
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => { renderLine(); centerHang(state.storyIndex, false); }, 200);
+    resizeTimer = setTimeout(() => { checkClamps(); drawJourneyPath(); }, 200);
   });
+  // huruf dari Google Fonts bisa mengubah tinggi catatan setelah dimuat
+  if (document.fonts) document.fonts.ready.then(() => { checkClamps(); drawJourneyPath(); });
+  addEventListener('load', drawJourneyPath);
+}
+
+/* --------------------------------------------------------------------------
+   Transisi hero → Waktu: jendela hati di kertas yang membesar saat digulir,
+   sampai kertas kraft di baliknya memenuhi layar. Hanya ukuran masker yang berubah.
+   -------------------------------------------------------------------------- */
+function setupDive() {
+  const dive = $('#dive');
+  if (reduceMotion) { dive.classList.add('static'); return; }
+  const inside = $('#dive-inside');
+  const edge = $('#dive-edge');
+  const text = $('#dive-text');
+  const hint = $('#dive-hint');
+  let ticking = false;
+  const update = () => {
+    ticking = false;
+    const r = dive.getBoundingClientRect();
+    if (r.bottom < -50 || r.top > innerHeight + 50) return;
+    const total = Math.max(1, r.height - innerHeight);
+    const p = Math.min(1, Math.max(0, -r.top / total));
+    const from = Math.min(innerWidth, innerHeight) * 0.34;
+    const to = Math.hypot(innerWidth, innerHeight) * 3.4;
+    const s = `${(from + (to - from) * Math.pow(p, 2.4)).toFixed(1)}px`;
+    inside.style.setProperty('--s', s);
+    edge.style.setProperty('--s', s);
+    text.style.setProperty('--t', (0.55 + 0.45 * Math.min(1, p * 1.5)).toFixed(3));
+    hint.style.opacity = Math.max(0, 1 - p * 6).toFixed(2);
+    edge.style.opacity = p > 0.85 ? Math.max(0, (1 - p) / 0.15).toFixed(2) : '1';
+  };
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(update);
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('resize', onScroll);
+  update();
 }
 
 /** Geser dengan mouse (di HP sudah bisa swipe bawaan). Mengembalikan fungsi "barusan di-drag?" untuk mengabaikan klik. */
@@ -1367,7 +1399,7 @@ function renderMemories() {
   renderBook();
   renderTabs();
   renderGrid();
-  renderStory();
+  renderJourney();
 }
 
 function renderSettings() {
@@ -1384,6 +1416,7 @@ function init() {
   $$('.reveal').forEach(watch);
   renderSettings();
   renderMemories();
+  buildFlipclock();
   tickClock();
   setInterval(tickClock, 1000);
   setInterval(() => { renderTime(); renderBirthdays(); }, 60000);
@@ -1398,12 +1431,12 @@ function init() {
     watch(card);
   });
   $$('.doodle').forEach(watch);
-  tornEdges($('#kraft-sheet'));
 
   setupCalendar();
   setupBook();
   setupStrip();
-  setupStory();
+  setupJourney();
+  setupDive();
   setupLightbox();
   setupLetter();
   setupCoret();

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;800&family=Yellowtail&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="v2.css?v=7">
+  <link rel="stylesheet" href="v2.css?v=8">
   <meta name="theme-color" content="#f4ede3">
   <script>
     // Mode dipasang sebelum halaman tergambar supaya tidak berkedip.
@@ -90,19 +90,30 @@
       </div>
     </header>
 
-    <!-- WAKTU -->
-    <section class="section" id="waktu">
+    <!-- TRANSISI hero → waktu: jendela hati yang digunting di kertas, makin besar saat digulir -->
+    <div class="dive" id="dive" aria-hidden="true">
+      <div class="dive-stage">
+        <div class="dive-inside" id="dive-inside">
+          <div class="dive-text" id="dive-text">
+            <b id="dive-days">1</b>
+            <span>hari bersama ♡</span>
+          </div>
+        </div>
+        <svg class="dive-edge" id="dive-edge" viewBox="0 0 100 90" preserveAspectRatio="none"><path d="M50 88 C 22 66, 3 48, 3 27 C 3 12, 14 2, 27 2 C 37 2, 45 8, 50 17 C 55 8, 63 2, 73 2 C 86 2, 97 12, 97 27 C 97 48, 78 66, 50 88 Z"/></svg>
+        <p class="dive-hint" id="dive-hint">geser pelan-pelan ↓</p>
+      </div>
+    </div>
+
+    <!-- WAKTU: selembar kertas kraft selebar halaman -->
+    <section class="section waktu" id="waktu">
       <div class="wrap">
-        <!-- lembar kertas kraft bertepi sobek -->
-        <div class="sheet-wrap reveal">
-          <div class="sheet kraft" id="kraft-sheet">
-            <div class="kicker" id="since-kicker">sejak 15 Februari 2026</div>
-            <h2>Sudah selama ini</h2>
-            <svg class="doodle sparkle desk-only" viewBox="0 0 40 40" aria-hidden="true"><path pathLength="1" d="M20 4 C 21 14, 26 19, 36 20 C 26 21, 21 26, 20 36 C 19 26, 14 21, 4 20 C 14 19, 19 14, 20 4 Z"/></svg>
+        <div class="kicker reveal" id="since-kicker">sejak 15 Februari 2026</div>
+        <h2 class="reveal">Sudah selama ini</h2>
+        <svg class="doodle sparkle desk-only" viewBox="0 0 40 40" aria-hidden="true"><path pathLength="1" d="M20 4 C 21 14, 26 19, 36 20 C 26 21, 21 26, 20 36 C 19 26, 14 21, 4 20 C 14 19, 19 14, 20 4 Z"/></svg>
 
             <div class="together">
               <div class="calendar-col">
-                <div class="calendar" id="calendar" role="button" tabindex="0" title="klik untuk menyobek lagi" aria-label="Kalender hari bersama">
+                <div class="calendar" id="calendar" role="button" tabindex="0" title="ketuk untuk menyobek lagi" aria-label="Kalender hari bersama">
                   <div class="cal-top"><i></i><i></i></div>
                   <div class="cal-pages" id="cal-pages"></div>
                 </div>
@@ -110,9 +121,15 @@
               </div>
               <div class="together-detail">
                 <p class="since" id="since"></p>
-                <p class="ticker" id="ticker"></p>
-                <ul class="milestones" id="milestones"></ul>
+                <!-- jam kertas: kartu angka yang membalik sendiri -->
+                <div class="flipclock" id="flipclock" aria-live="off"></div>
               </div>
+            </div>
+
+            <!-- jalur hari: target yang sudah lewat, posisi hari ini, dan target berikutnya -->
+            <div class="trail reveal" id="trail">
+              <p class="trail-title">perjalanan kita</p>
+              <ol class="trail-stops" id="trail-stops"></ol>
             </div>
 
             <div class="bdays">
@@ -147,8 +164,6 @@
                 <img class="sticker" src="../assets/images/naruto-birthday.webp" alt="">
               </article>
             </div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -184,30 +199,11 @@
       <div class="wrap">
         <div class="kicker reveal">dibaca dari awal</div>
         <h2 class="reveal">Cerita kita</h2>
-      </div>
-
-      <!-- jemuran foto: urut dari yang paling lama -->
-      <div class="line-scroll" id="line-scroll"><div class="line-track" id="line-track"></div></div>
-
-      <div class="wrap">
-        <article class="story-card reveal" id="story-card">
-          <span class="tape yellow"></span>
-          <div class="story-media">
-            <figure class="print story-photo" id="story-photo" title="Klik untuk melihat penuh"><img id="story-img" alt=""></figure>
-            <div class="story-thumbs" id="story-thumbs"></div>
-          </div>
-          <div class="story-text" id="story-text">
-            <div class="story-date"><b id="story-day"></b><span id="story-when"></span></div>
-            <h3 id="story-title"></h3>
-            <span class="story-cat" id="story-cat"></span>
-            <p id="story-caption"></p>
-            <div class="story-nav">
-              <button class="book-nav" id="story-prev" aria-label="Cerita sebelumnya"><i class="fa-solid fa-arrow-left"></i></button>
-              <span id="story-count"></span>
-              <button class="book-nav" id="story-next" aria-label="Cerita berikutnya"><i class="fa-solid fa-arrow-right"></i></button>
-            </div>
-          </div>
-        </article>
+        <!-- jalan cerita: garis putus-putus yang tergambar saat digulir, tiap kenangan di saku kertas -->
+        <div class="journey" id="journey">
+          <svg class="journey-path" id="journey-path" aria-hidden="true"></svg>
+          <div class="journey-stops" id="journey-stops"></div>
+        </div>
       </div>
     </section>
 
@@ -297,6 +293,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script type="module" src="v2.js?v=7"></script>
+  <script type="module" src="v2.js?v=8"></script>
 </body>
 </html>
