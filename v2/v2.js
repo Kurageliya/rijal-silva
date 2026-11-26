@@ -12,7 +12,8 @@ import { getMemoryImages } from '../js/modules/timeline.js';
 import { escapeHtml, getMemoryTimestamp } from '../js/utils/helpers.js';
 import { showToast } from '../js/utils/toast.js';
 // ?v= dinaikkan bersama v2.js setiap editor.js berubah (supaya HP tidak memakai versi lama dari cache)
-import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=13';
+import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=14';
+import { drawScene, sceneFor } from './gambar.js?v=14';
 
 const DAY = 86400000;
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -714,6 +715,8 @@ function renderJourney() {
       `<figure class="print extra e${k + 1}"><img src="${escapeHtml(url)}" alt="" loading="lazy" draggable="false"></figure>`).join('');
     const when = `${d.toLocaleDateString('id-ID', { weekday: 'long' })}${mem.time ? ` · jam ${escapeHtml(mem.time.replace(':', '.'))}` : ''}`;
     const title = escapeHtml(mem.title || 'Kenangan');
+    const scene = sceneFor(mem);
+    const doodle = scene === 'none' ? '' : `<div class="stop-art" aria-hidden="true">${drawScene(scene)}</div>`;
     return `<article class="stop ${i % 2 ? 'right' : 'left'}" data-i="${i}">
       ${flag}
       <div class="pocket-wrap" role="button" tabindex="0" aria-label="Tarik foto ${title} dari saku">
@@ -735,6 +738,7 @@ function renderJourney() {
           ${mem.caption ? `<p class="clamp">${escapeHtml(mem.caption)}</p><button class="link note-more" hidden>Baca semua</button>` : ''}
         </div>
       </div>
+      ${doodle}
     </article>`;
   }).join('') + '<p class="journey-end">bersambung…</p>';
 
@@ -1454,7 +1458,7 @@ function setupNav() {
    -------------------------------------------------------------------------- */
 function memoriesSignature(list) {
   // isi cerita lengkap + sidik tiap foto (panjang + ujungnya), supaya edit teks atau ganti foto ikut tampil
-  return list.map((m) => [m.id, m.title, m.date, m.time, m.category, m.isFeatured, m.caption || '',
+  return list.map((m) => [m.id, m.title, m.date, m.time, m.category, m.isFeatured, m.gambar || '', m.caption || '',
     getMemoryImages(m).map((u) => `${String(u).length}:${String(u).slice(-16)}`).join(',')].join('~')).join('|');
 }
 

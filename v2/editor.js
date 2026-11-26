@@ -8,6 +8,7 @@ import { syncMemoryToCloud, deleteMemoryFromCloud, syncSettingsToCloud, saveScra
 import { compressAndReadImage, isSupportedImageFile, isHeicFile, escapeHtml, formatIndoDate } from '../js/utils/helpers.js';
 import { getMemoryImages } from '../js/modules/timeline.js';
 import { showToast } from '../js/utils/toast.js';
+import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=14';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -110,6 +111,17 @@ export function openMemoryForm(mem, memories) {
       <label class="check"><input type="checkbox" name="featured" ${!mem || mem.isFeatured !== false ? 'checked' : ''}>
         <span>Tampilkan di <b>Cerita</b> ♡ <small>(jalan cerita memakai 10 kenangan ber-♡ yang paling lama)</small></span>
       </label>
+      <div class="field">
+        <span class="field-label">Gambar di Cerita</span>
+        <div class="gambar-pick">
+          <select name="gambar" aria-label="Gambar di Cerita">
+            <option value="">Otomatis</option>
+            ${SCENE_KEYS.map((k) => `<option value="${k}"${mem && mem.gambar === k ? ' selected' : ''}>${escapeHtml(SCENE_LABELS[k])}</option>`).join('')}
+            <option value="none"${mem && mem.gambar === 'none' ? ' selected' : ''}>Tanpa gambar</option>
+          </select>
+          <div class="gambar-preview" aria-hidden="true"></div>
+        </div>
+      </div>
       <div class="dlg-actions">
         <button type="button" class="link muted" data-cancel>Batal</button>
         <button type="submit" class="btn">${isNew ? 'Tambahkan' : 'Simpan'}</button>
@@ -166,6 +178,25 @@ export function openMemoryForm(mem, memories) {
       newCat.hidden = select.value !== '__new__';
       if (!newCat.hidden) form.elements.newCategory.focus();
     });
+
+    // pratinjau gambar; "Otomatis" ikut menebak dari judul + kategori + cerita yang sedang diketik
+    const pick = form.elements.gambar;
+    const preview = $('.gambar-preview', dlg);
+    const renderPick = () => {
+      const f = form.elements;
+      const auto = sceneFor({ title: f.title.value, category: select.value === '__new__' ? f.newCategory.value : select.value, caption: f.caption.value });
+      pick.options[0].textContent = `Otomatis (${SCENE_LABELS[auto]})`;
+      const key = pick.value || auto;
+      preview.innerHTML = key === 'none' ? '<span>tanpa gambar</span>' : drawScene(key);
+    };
+    renderPick();
+    pick.addEventListener('change', renderPick);
+    let pickTimer = null;
+    form.addEventListener('input', (e) => {
+      if (e.target === pick || pick.value) return;
+      clearTimeout(pickTimer);
+      pickTimer = setTimeout(renderPick, 300);
+    });
     $('[data-cancel]', dlg).addEventListener('click', () => closeDialog());
 
     form.addEventListener('submit', async (e) => {
@@ -190,7 +221,8 @@ export function openMemoryForm(mem, memories) {
         caption: f.caption.value.trim(),
         images: [...photos],
         imgUrl: photos[0],
-        isFeatured: f.featured.checked
+        isFeatured: f.featured.checked,
+        gambar: f.gambar.value
       };
       const ok = await busy($('button[type="submit"]', form), () => syncMemoryToCloud(data));
       if (ok) {
