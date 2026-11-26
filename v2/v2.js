@@ -12,8 +12,8 @@ import { getMemoryImages } from '../js/modules/timeline.js';
 import { escapeHtml, getMemoryTimestamp } from '../js/utils/helpers.js';
 import { showToast } from '../js/utils/toast.js';
 // ?v= dinaikkan bersama v2.js setiap editor.js berubah (supaya HP tidak memakai versi lama dari cache)
-import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=15';
-import { drawScene, sceneFor } from './gambar.js?v=15';
+import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=16';
+import { drawScene, sceneFor } from './gambar.js?v=16';
 
 const DAY = 86400000;
 const $ = (sel, root = document) => root.querySelector(sel);

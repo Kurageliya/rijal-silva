@@ -22,6 +22,7 @@ const SCENES = {
   pulang: { size: [560, 661], label: 'Senja, bergandengan' },
   pantai: { size: [560, 506], label: 'Ke pantai' },
   ultah: { size: [560, 447], label: 'Ulang tahun (selfie + kue)', pudar: true },
+  bianglala: { size: [560, 402], label: 'Naik bianglala' },
   bareng: { size: [560, 583], label: 'Berdua melambai' },
 };
 
@@ -31,6 +32,7 @@ export const SCENE_LABELS = Object.fromEntries(SCENE_KEYS.map((k) => [k, SCENES[
 /* Tebakan otomatis dari judul + kategori + cerita. Urutan penting: yang lebih spesifik di atas. */
 const RULES = [
   ['ultah', /ultah|ulang ta?h?un|birthday|b'?day|milad/],
+  ['bianglala', /bianglala|ferris|saloka|wahana|taman bermain|dufan|pasar malam|kincir/],
   ['chat', /whats ?app|\bwa\b|chat|pesan pertama|\bdm\b/],
   ['pantai', /pantai|laut|beach/],
   ['cukur', /rambut|cukur|barber|potong/],
