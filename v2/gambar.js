@@ -10,7 +10,8 @@
 
 const DIR = new URL('../assets/cerita/', import.meta.url);
 
-/** adegan yang gambarnya ada: [lebar, tinggi] file -garis/-warna, dan nama di pilihan editor */
+/** adegan yang gambarnya ada: [lebar, tinggi] file -garis/-warna, dan nama di pilihan editor.
+    pudar: gambar setengah badan yang terpotong di tepi bawah, jadi bagian bawahnya dibuat memudar. */
 const SCENES = {
   chat: { size: [560, 508], label: 'Chat-an (pegang HP)' },
   ketemu: { size: [560, 603], label: 'Pertama ketemu (deg-degan)' },
@@ -20,6 +21,7 @@ const SCENES = {
   cukur: { size: [560, 515], label: 'Potong rambut' },
   pulang: { size: [560, 661], label: 'Senja, bergandengan' },
   pantai: { size: [560, 506], label: 'Ke pantai' },
+  ultah: { size: [560, 447], label: 'Ulang tahun (selfie + kue)', pudar: true },
   bareng: { size: [560, 583], label: 'Berdua melambai' },
 };
 
@@ -28,6 +30,7 @@ export const SCENE_LABELS = Object.fromEntries(SCENE_KEYS.map((k) => [k, SCENES[
 
 /* Tebakan otomatis dari judul + kategori + cerita. Urutan penting: yang lebih spesifik di atas. */
 const RULES = [
+  ['ultah', /ultah|ulang ta?h?un|birthday|b'?day|milad/],
   ['chat', /whats ?app|\bwa\b|chat|pesan pertama|\bdm\b/],
   ['pantai', /pantai|laut|beach/],
   ['cukur', /rambut|cukur|barber|potong/],
@@ -51,7 +54,7 @@ export function drawScene(key) {
   const [w, h] = sc.size;
   const garis = new URL(`${key}-garis.png`, DIR).href;
   const mask = `url('${garis}') center / contain no-repeat`;
-  return `<div class="lineart" style="aspect-ratio:${w} / ${h}">`
+  return `<div class="lineart${sc.pudar ? ' pudar' : ''}" style="aspect-ratio:${w} / ${h}">`
     + `<span class="garis" style="-webkit-mask:${mask};mask:${mask}"></span>`
     + `<img class="warna" src="${new URL(`${key}-warna.png`, DIR).href}" alt="" width="${w}" height="${h}" loading="lazy" decoding="async">`
     + '</div>';
