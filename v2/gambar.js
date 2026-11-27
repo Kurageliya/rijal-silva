@@ -23,6 +23,7 @@ const SCENES = {
   pantai: { size: [560, 506], label: 'Ke pantai' },
   ultah: { size: [560, 447], label: 'Ulang tahun (selfie + kue)', pudar: true },
   bianglala: { size: [560, 402], label: 'Naik bianglala' },
+  game: { size: [560, 429], label: 'Main game bareng' },
   bareng: { size: [560, 583], label: 'Berdua melambai' },
 };
 
@@ -33,6 +34,7 @@ export const SCENE_LABELS = Object.fromEntries(SCENE_KEYS.map((k) => [k, SCENES[
 const RULES = [
   ['ultah', /ultah|ulang ta?h?un|birthday|b'?day|milad/],
   ['bianglala', /bianglala|ferris|saloka|wahana|taman bermain|dufan|pasar malam|kincir/],
+  ['game', /main game|\bgames?\b|gaming|playstation|\bps ?[345]?\b|private room|mabar|konsol/],
   ['chat', /whats ?app|\bwa\b|chat|pesan pertama|\bdm\b/],
   ['pantai', /pantai|laut|beach/],
   ['cukur', /rambut|cukur|barber|potong/],
