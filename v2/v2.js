@@ -12,8 +12,8 @@ import { getMemoryImages } from '../js/modules/timeline.js';
 import { escapeHtml, getMemoryTimestamp } from '../js/utils/helpers.js';
 import { showToast } from '../js/utils/toast.js';
 // ?v= dinaikkan bersama v2.js setiap editor.js berubah (supaya HP tidak memakai versi lama dari cache)
-import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=18';
-import { drawScene, sceneFor } from './gambar.js?v=18';
+import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=19';
+import { drawScene, sceneFor } from './gambar.js?v=19';
 
 const DAY = 86400000;
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -547,6 +547,7 @@ function openLightbox(mem, index, origin) {
   $('#lb-title').textContent = mem.title || '';
   $('#lb-date').textContent = fmtDate(parseDay(mem.date)) + (mem.time ? ` · ${mem.time.replace(':', '.')}` : '');
   $('#lb-caption').textContent = mem.caption || '';
+  setLightboxFull(false, false);
   updateLightbox(false);
 
   const box = $('#lightbox');
@@ -616,23 +617,40 @@ function stepLightbox(dir) {
   updateLightbox();
 }
 
+const isLightboxFull = () => $('#lightbox').classList.contains('full');
+
+/** Foto penuh layar (seperti di versi pertama: ketuk foto untuk melihatnya besar). */
+function setLightboxFull(on, animate = true) {
+  if (isLightboxFull() === on) return;
+  $('#lightbox').classList.toggle('full', on);
+  const zoom = $('#lb-zoom');
+  zoom.innerHTML = `<i class="fa-solid fa-${on ? 'compress' : 'expand'}"></i>`;
+  zoom.setAttribute('aria-label', on ? 'Kembali ke cerita' : 'Lihat foto penuh');
+  updateLightbox(false); // ukuran foto berubah: geser ke foto yang sama tanpa animasi
+  if (animate) $('#lb-print').animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
+}
+
 function setupLightbox() {
   $('#lb-backdrop').addEventListener('click', closeLightbox);
-  $('#lb-close').addEventListener('click', closeLightbox);
+  // di foto penuh, X kembali ke kotak cerita dulu
+  $('#lb-close').addEventListener('click', () => (isLightboxFull() ? setLightboxFull(false) : closeLightbox()));
   $('#lb-prev').addEventListener('click', () => stepLightbox(-1));
   $('#lb-next').addEventListener('click', () => stepLightbox(1));
+  $('#lb-zoom').addEventListener('click', () => setLightboxFull(!isLightboxFull()));
   let downX = null;
   const photo = $('.lb-photo');
   photo.addEventListener('pointerdown', (e) => { downX = e.clientX; });
+  photo.addEventListener('pointercancel', () => { downX = null; });
   photo.addEventListener('pointerup', (e) => {
     if (downX === null) return;
     const dx = e.clientX - downX;
     downX = null;
     if (Math.abs(dx) > 40) stepLightbox(dx < 0 ? 1 : -1);
+    else if (Math.abs(dx) < 8 && !e.target.closest('button')) setLightboxFull(!isLightboxFull()); // ketuk foto
   });
   document.addEventListener('keydown', (e) => {
     if (!$('#lightbox').classList.contains('open') || $('#editor-dialog').open) return; // Esc di form edit hanya menutup form
-    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'Escape') { if (isLightboxFull()) setLightboxFull(false); else closeLightbox(); return; }
     if (e.key === 'ArrowRight') stepLightbox(1);
     if (e.key === 'ArrowLeft') stepLightbox(-1);
   });
