@@ -8,7 +8,7 @@ import { syncMemoryToCloud, deleteMemoryFromCloud, syncSettingsToCloud, saveScra
 import { compressAndReadImage, isSupportedImageFile, isHeicFile, escapeHtml, formatIndoDate } from '../js/utils/helpers.js';
 import { getMemoryImages } from '../js/modules/timeline.js';
 import { showToast } from '../js/utils/toast.js';
-import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=16';
+import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=17';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -109,7 +109,7 @@ export function openMemoryForm(mem, memories) {
         <textarea name="caption" rows="5" placeholder="Tulis ceritanya di sini…">${escapeHtml((mem && mem.caption) || '')}</textarea>
       </label>
       <label class="check"><input type="checkbox" name="featured" ${!mem || mem.isFeatured !== false ? 'checked' : ''}>
-        <span>Tampilkan di <b>Cerita</b> ♡ <small>(jalan cerita memakai 10 kenangan ber-♡ yang paling lama)</small></span>
+        <span>Tampilkan di <b>Cerita</b> ♡ <small>(jalan cerita memakai 50 kenangan ber-♡ yang paling lama)</small></span>
       </label>
       <div class="field">
         <span class="field-label">Gambar di Cerita</span>

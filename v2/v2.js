@@ -12,8 +12,8 @@ import { getMemoryImages } from '../js/modules/timeline.js';
 import { escapeHtml, getMemoryTimestamp } from '../js/utils/helpers.js';
 import { showToast } from '../js/utils/toast.js';
 // ?v= dinaikkan bersama v2.js setiap editor.js berubah (supaya HP tidak memakai versi lama dari cache)
-import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=16';
-import { drawScene, sceneFor } from './gambar.js?v=16';
+import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=17';
+import { drawScene, sceneFor } from './gambar.js?v=17';
 
 const DAY = 86400000;
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -683,11 +683,14 @@ function setupEditor() {
    -------------------------------------------------------------------------- */
 const isPhone = () => matchMedia('(max-width: 860px)').matches;
 
-/** Aturan timeline tetap sama dengan versi sekarang: kenangan ber-❤️, dari yang terlama, maksimal 10. */
+/** batas jumlah kenangan di Cerita (dulu 10, jadi 50 sejak 2026-11-27). Teks di form edit (editor.js) ikut menyebut angka ini. */
+const STORY_MAX = 50;
+
+/** Isi Cerita: kenangan ber-❤️, dari yang terlama, maksimal STORY_MAX. */
 function storyList() {
   const oldestFirst = [...state.memories].sort((a, b) => getMemoryTimestamp(a) - getMemoryTimestamp(b));
   const featured = oldestFirst.filter((m) => m.isFeatured !== false);
-  return (featured.length ? featured : oldestFirst).slice(0, 10);
+  return (featured.length ? featured : oldestFirst).slice(0, STORY_MAX);
 }
 
 const TAPES = ['yellow', 'pink', 'green'];
