@@ -12,8 +12,8 @@ import { getMemoryImages } from '../js/modules/timeline.js';
 import { escapeHtml, getMemoryTimestamp } from '../js/utils/helpers.js';
 import { showToast } from '../js/utils/toast.js';
 // ?v= dinaikkan bersama v2.js setiap editor.js berubah (supaya HP tidak memakai versi lama dari cache)
-import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=19';
-import { drawScene, sceneFor } from './gambar.js?v=19';
+import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=20';
+import { drawScene, sceneFor } from './gambar.js?v=20';
 
 const DAY = 86400000;
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -226,26 +226,30 @@ function renderTime() {
 }
 
 /**
- * Semua target, tanpa batas: hari ke-100 sampai 1000, lalu tiap 500 hari, angka kembar
- * (111, 222, …, 1111, 2222, …), dan tiap tahun jadian. Jadi ribuan hari pun tetap ada target berikutnya.
+ * Semua target: hari ke-100 sampai 1000, lalu tiap 500 hari, angka kembar (111, 222, …, 1111, …, 11111, …),
+ * dan tiap tahun jadian. Daftarnya selalu dibuat sampai jauh melewati hari ini (dayN), jadi berapa pun
+ * lamanya (tanggal jadian diisi 1900 sekalipun) tetap ada target berikutnya.
  */
-function milestones(start) {
+function milestones(start, dayN = 1) {
   const base = midnight(start).getTime();
+  const last = Math.max(20000, dayN + 3000);
   const days = new Set([100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 111, 222, 333, 444, 555, 666, 777, 888, 999]);
-  for (let n = 1500; n <= 20000; n += 500) days.add(n);
-  for (let k = 1; k <= 9; k++) days.add(1111 * k);
+  for (let n = 1500; n <= last; n += 500) days.add(n);
+  for (const twin of [1111, 11111]) for (let k = 1; k <= 9 && twin * k <= last; k++) days.add(twin * k);
   const list = [...days].map((n) => ({ label: `Hari ke-${n}`, date: new Date(base + (n - 1) * DAY) }));
-  for (let y = 1; y <= 60; y++) list.push({ label: `${y} tahun`, date: addMonths(start, y * 12) });
+  const years = Math.max(60, Math.ceil(last / 365));
+  for (let y = 1; y <= years; y++) list.push({ label: `${y} tahun`, date: addMonths(start, y * 12) });
   return list.sort((a, b) => a.date - b.date);
 }
 
 /** Jalur hari: target terakhir yang sudah lewat, jarum "hari ini", lalu tiga target berikutnya. */
 function renderTrail(start, now, dayN) {
   const today = midnight(now);
-  const all = milestones(start);
+  const all = milestones(start, dayN);
   const passed = all.filter((m) => midnight(m.date) < today);
   const done = passed.length ? passed[passed.length - 1] : { label: 'Hari pertama', date: midnight(start) };
   const next = all.filter((m) => midnight(m.date) >= today).slice(0, 3);
+  if (!next.length) return; // tidak mungkin terjadi lagi, tapi jangan sampai menghentikan bagian lain
   const span = midnight(next[0].date) - midnight(done.date);
   const f = span > 0 ? Math.min(1, Math.max(0, (today - midnight(done.date)) / span)) : 1;
   const stop = (m, cls, em) => `<li class="${cls}"><span class="trail-dot">${cls === 'done' ? '♡' : ''}</span>`
@@ -1483,21 +1487,34 @@ function memoriesSignature(list) {
     getMemoryImages(m).map((u) => `${String(u).length}:${String(u).slice(-16)}`).join(',')].join('~')).join('|');
 }
 
+/**
+ * Tiap bagian halaman dijalankan sendiri-sendiri. Dulu satu error (tanggal jadian 1900 membuat daftar
+ * target habis) menghentikan init, sehingga buku, album, cerita, dan jam ikut kosong.
+ */
+function safely(name, fn) {
+  try {
+    fn();
+  } catch (err) {
+    console.error(`[${name}]`, err);
+  }
+}
+
 function renderMemories() {
   state.memoriesSig = memoriesSignature(state.memories);
-  renderBook();
-  renderTabs();
-  renderGrid();
-  renderJourney();
+  safely('buku', renderBook);
+  safely('album', () => { renderTabs(); renderGrid(); });
+  safely('cerita', renderJourney);
 }
 
 function renderSettings() {
   state.settingsSig = JSON.stringify(state.settings);
-  renderNames();
-  renderTime();
-  renderBirthdays();
-  renderLetterTabs();
-  if (!$('#letter-wrap').hidden) showLetter(state.letterIndex);
+  safely('nama', renderNames);
+  safely('waktu', renderTime);
+  safely('ulang tahun', renderBirthdays);
+  safely('surat', () => {
+    renderLetterTabs();
+    if (!$('#letter-wrap').hidden) showLetter(state.letterIndex);
+  });
 }
 
 function init() {
@@ -1505,10 +1522,9 @@ function init() {
   $$('.reveal').forEach(watch);
   renderSettings();
   renderMemories();
-  buildFlipclock();
-  tickClock();
-  setInterval(tickClock, 1000);
-  setInterval(() => { renderTime(); renderBirthdays(); }, 60000);
+  safely('jam', () => { buildFlipclock(); tickClock(); });
+  setInterval(() => safely('jam', tickClock), 1000);
+  setInterval(() => { safely('waktu', renderTime); safely('ulang tahun', renderBirthdays); }, 60000);
 
   // angka hari menuju ulang tahun menghitung naik saat pertama terlihat
   $$('.ticket-wrap').forEach((card) => {
@@ -1521,21 +1537,13 @@ function init() {
   });
   $$('.doodle').forEach(watch);
 
-  setupCalendar();
-  setupBook();
-  setupStrip();
-  setupJourney();
-  setupStack();
-  setupLightbox();
-  setupLetter();
-  setupCoret();
-  setupLogin();
-  setupEditor();
-  setupNav();
-  setupAudioSynth($('#btn-audio-toggle'), $('#bg-music'), () => ({
+  for (const [name, setup] of [['kalender', setupCalendar], ['buku', setupBook], ['album', setupStrip],
+    ['cerita', setupJourney], ['tumpukan', setupStack], ['lightbox', setupLightbox], ['surat', setupLetter],
+    ['coretan', setupCoret], ['login', setupLogin], ['editor', setupEditor], ['navigasi', setupNav]]) safely(name, setup);
+  safely('musik', () => setupAudioSynth($('#btn-audio-toggle'), $('#bg-music'), () => ({
     ...state.settings,
     musicUrl: asset(state.settings.musicUrl || 'assets/audio/music.mp3')
-  }));
+  })));
 
   setupCloudListeners({
     onMemoriesUpdate: (list) => {
@@ -1551,7 +1559,7 @@ function init() {
       const prevMusic = state.settings.musicUrl;
       state.settings = settings;
       renderSettings();
-      renderBook();
+      safely('buku', renderBook);
       if (settings.musicUrl && settings.musicUrl !== prevMusic) onMusicUrlChanged(asset(settings.musicUrl));
     }
   });
