@@ -8,8 +8,8 @@ import { syncMemoryToCloud, deleteMemoryFromCloud, syncSettingsToCloud, saveScra
 import { compressAndReadImage, isSupportedImageFile, isHeicFile, escapeHtml, formatIndoDate } from '../js/utils/helpers.js';
 import { getMemoryImages } from '../js/modules/timeline.js';
 import { showToast } from '../js/utils/toast.js';
-import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=23';
-import { openAtMs, localDay, dayKey } from './kapsul.js?v=23';
+import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=24';
+import { openAtMs, localDay, dayKey } from './kapsul.js?v=24';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -621,6 +621,141 @@ export function openKapsulForm({ settings, meta, preset = null, items = [], uid 
         try { localStorage.setItem(KAPSUL_FROM_KEY, from); } catch (err) { /* tidak apa-apa */ }
         closeDialog();
         showToast(isNew ? `Sudah disegel ♡ Dibuka ${fmt(localDay(openDate))}.` : 'Gulungannya sudah diperbarui.', 4200);
+      }
+    });
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Jalan ninja kita: janji & mimpi berdua di papan kayu (v2/ninja.js)
+   -------------------------------------------------------------------------- */
+const NINJA_IDEAS = ['Nonton Naruto sampai tamat bareng', 'Liburan berdua ke pantai', 'Ketemu keluarga masing-masing',
+  'Masak bareng satu menu', 'Foto studio berdua', 'Lihat sunrise bareng'];
+
+/** item = null untuk janji baru. Item ber-id 'akhir' = tujuan akhir (tidak bisa dihapus). */
+export function openNinjaForm({ item, settings, memories = [] }) {
+  const s = settings || {};
+  const isNew = !item;
+  const it = item || { text: '', by: 'b', done: false, doneAt: '', memoryId: '' };
+  const final = it.id === 'akhir';
+  const names = { 1: s.person1 || 'Rijal', 2: s.person2 || 'Silva' };
+  const today = dayKey(new Date());
+  const by = it.by === '1' || it.by === '2' ? it.by : 'b';
+  const mems = [...memories]
+    .filter((m) => m && m.id != null && getMemoryImages(m).length)
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  const memOptions = mems.map((m) => {
+    const id = String(m.id);
+    return `<option value="${escapeHtml(id)}"${id === String(it.memoryId || '') ? ' selected' : ''}>${escapeHtml(m.title || 'Kenangan')} · ${escapeHtml(formatIndoDate(m.date))}</option>`;
+  }).join('');
+
+  openDialog(`
+    <h2 class="dlg-title">${final ? 'Tujuan akhir' : isNew ? 'Janji baru' : 'Ubah janji'}</h2>
+    <p class="dlg-text">${final
+      ? 'Papan paling bawah di "Jalan ninja kita". Kalau sudah terwujud, papannya dicap 叶 (terkabul).'
+      : 'Ditulis di papan doa kayu dan digantung di "Jalan ninja kita". Kalau sudah terwujud, papannya dicap 叶 (terkabul) dan bisa disambungkan ke kenangannya.'}</p>
+    <form class="dlg-form" id="ninja-form" novalidate>
+      <label class="field"><span class="field-label">${final ? 'Tulisan di papan' : 'Janji atau mimpinya'}</span>
+        <textarea name="text" rows="3" maxlength="80" placeholder="mis. Nonton Naruto sampai tamat bareng">${escapeHtml(it.text || '')}</textarea>
+      </label>
+      ${isNew ? `<div class="ninja-ideas"><span class="field-label">atau pilih contoh:</span>${NINJA_IDEAS.map((t) => `<button type="button" class="ninja-idea">${escapeHtml(t)}</button>`).join('')}</div>` : ''}
+      ${final ? '' : `<div class="field"><span class="field-label">Ditulis</span>
+        <div class="seg">
+          <label><input type="radio" name="by" value="b"${by === 'b' ? ' checked' : ''}><span>Berdua</span></label>
+          <label><input type="radio" name="by" value="1"${by === '1' ? ' checked' : ''}><span>${escapeHtml(names[1])}</span></label>
+          <label><input type="radio" name="by" value="2"${by === '2' ? ' checked' : ''}><span>${escapeHtml(names[2])}</span></label>
+        </div>
+      </div>`}
+      <label class="check"><input type="checkbox" name="done"${it.done ? ' checked' : ''}><span>Sudah terkabul ♡</span></label>
+      <div class="ninja-done" data-done${it.done ? '' : ' hidden'}>
+        <label class="field"><span class="field-label">Terkabul tanggal</span>
+          <input type="date" name="doneAt" max="${today}" value="${escapeHtml(it.doneAt || today)}">
+        </label>
+        <label class="field"><span class="field-label">Kenangannya <small>(boleh kosong; fotonya diselipkan di belakang papan)</small></span>
+          <select name="memoryId"><option value="">tanpa kenangan</option>${memOptions}</select>
+        </label>
+      </div>
+      <div class="dlg-actions">
+        ${isNew || final ? '' : '<button type="button" class="link danger-text" data-delete>Hapus</button>'}
+        <button type="button" class="link muted" data-cancel>Batal</button>
+        <button type="submit" class="btn">${isNew ? 'Gantung ♡' : 'Simpan'}</button>
+      </div>
+    </form>`, (dlg) => {
+    const form = $('#ninja-form', dlg);
+    const f = form.elements;
+    const doneBox = $('[data-done]', dlg);
+    $('[data-cancel]', dlg).addEventListener('click', () => closeDialog());
+    $$('.ninja-idea', dlg).forEach((b) => b.addEventListener('click', () => {
+      f.text.value = b.textContent;
+      f.text.focus();
+    }));
+    f.done.addEventListener('change', () => { doneBox.hidden = !f.done.checked; });
+
+    const ref = () => firebase.firestore().collection('settings').doc('ninja');
+    const failed = (err, what) => {
+      console.error(`Jalan ninja gagal ${what}:`, err);
+      showToast(err && err.code === 'permission-denied'
+        ? 'Ditolak server. Coba keluar lalu masuk lagi.'
+        : `Gagal ${what}. Cek koneksi, lalu coba lagi.`, 5200);
+      return false;
+    };
+    const ready = () => {
+      if (window.firebase && firebase.apps.length) return true;
+      showToast('Belum tersambung ke server. Coba muat ulang halamannya.');
+      return false;
+    };
+
+    const del = $('[data-delete]', dlg);
+    if (del) {
+      del.addEventListener('click', async () => {
+        if (!del.dataset.sure) {
+          del.dataset.sure = '1';
+          del.textContent = 'Yakin hapus?';
+          return;
+        }
+        if (!ready()) return;
+        const ok = await busy(del, async () => {
+          try {
+            await ref().update({ [`items.${it.id}`]: firebase.firestore.FieldValue.delete() });
+            return true;
+          } catch (err) {
+            return failed(err, 'menghapus');
+          }
+        });
+        if (ok) {
+          closeDialog();
+          showToast('Papannya sudah diturunkan.');
+        }
+      });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = f.text.value.trim().replace(/\s+/g, ' ');
+      if (!text) { showToast('Janjinya belum ditulis.'); f.text.focus(); return; }
+      const done = f.done.checked;
+      const doneAt = done ? f.doneAt.value : '';
+      if (done && !/^\d{4}-\d{2}-\d{2}$/.test(doneAt)) { showToast('Pilih tanggal terkabulnya dulu.'); f.doneAt.focus(); return; }
+      if (!ready()) return;
+      const id = isNew ? `n${Date.now()}` : it.id;
+      const data = {
+        id, text,
+        by: final ? 'b' : (form.querySelector('input[name="by"]:checked') || {}).value || 'b',
+        order: Number(it.order) || Date.now(),
+        done, doneAt,
+        memoryId: done ? f.memoryId.value : ''
+      };
+      const ok = await busy($('button[type="submit"]', form), async () => {
+        try {
+          await ref().set({ items: { [id]: data } }, { merge: true });
+          return true;
+        } catch (err) {
+          return failed(err, 'menyimpan');
+        }
+      });
+      if (ok) {
+        closeDialog();
+        showToast(done && !it.done ? 'Terkabul! ♡ Papannya sudah dicap 叶.' : isNew ? 'Janjinya sudah digantung ♡' : 'Papannya sudah diperbarui.', 4200);
       }
     });
   });

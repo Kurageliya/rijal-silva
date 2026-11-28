@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;800&family=Yellowtail&display=swap" rel="stylesheet">
-  <!-- huruf kuas hanya untuk satu huruf 封 (segel) di gulungan tersegel -->
-  <link href="https://fonts.googleapis.com/css2?family=Yuji+Boku&text=%E5%B0%81&display=swap" rel="stylesheet">
+  <!-- huruf kuas hanya untuk dua huruf: 封 (segel gulungan tersegel) dan 叶 (cap "terkabul" di Jalan ninja kita) -->
+  <link href="https://fonts.googleapis.com/css2?family=Yuji+Boku&text=%E5%B0%81%E5%8F%B6&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="v2/v2.css?v=23">
+  <link rel="stylesheet" href="v2/v2.css?v=24">
   <meta name="theme-color" content="#f4ede3">
   <script>
     // Mode dipasang sebelum halaman tergambar supaya tidak berkedip.
@@ -33,6 +33,7 @@
         <li><a href="#waktu">Waktu</a></li>
         <li><a href="#album">Album</a></li>
         <li><a href="#cerita">Cerita</a></li>
+        <li id="nav-ninja" hidden><a href="#ninja">Janji</a></li>
         <li><a href="#surat">Surat</a></li>
       </ul>
       <div class="nav-icons">
@@ -221,6 +222,20 @@
       </div>
     </section>
 
+    <!-- JALAN NINJA KITA: janji & mimpi berdua di papan doa kayu (ema); yang terkabul dicap 叶.
+         Paling bawah tujuan akhirnya. Tamu tidak melihat bagian ini selama belum ada janji (v2/ninja.js) -->
+    <section class="section ninja" id="ninja" hidden>
+      <div class="wrap">
+        <div class="kicker reveal">janji &amp; mimpi berdua</div>
+        <h2 class="reveal">Jalan ninja kita</h2>
+        <p class="ninja-quote reveal">“Nggak akan menarik kata-kata sendiri. Itu jalan ninja kita.”</p>
+        <p class="ninja-count" id="ninja-count"></p>
+        <ul class="ema-list" id="ema-list"></ul>
+        <div class="ema-path" aria-hidden="true"></div>
+        <div class="ema-akhir" id="ema-akhir"></div>
+      </div>
+    </section>
+
     <!-- SURAT -->
     <section class="section" id="surat">
       <div class="wrap">
@@ -349,6 +364,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script type="module" src="v2/v2.js?v=23"></script>
+  <script type="module" src="v2/v2.js?v=24"></script>
 </body>
 </html>

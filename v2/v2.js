@@ -12,10 +12,11 @@ import { getMemoryImages } from '../js/modules/timeline.js';
 import { escapeHtml, getMemoryTimestamp } from '../js/utils/helpers.js';
 import { showToast } from '../js/utils/toast.js';
 // ?v= dinaikkan bersama v2.js setiap editor.js berubah (supaya HP tidak memakai versi lama dari cache)
-import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured, openKapsulForm } from './editor.js?v=23';
-import { setupKapsul, renderKapsul, kapsulItems, dayKey, openBirthdayLetter } from './kapsul.js?v=23';
-import { setupUltah, renderHariH, mustBlowFirst, nudgeCake } from './ultah.js?v=23';
-import { drawScene, sceneFor } from './gambar.js?v=23';
+import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured, openKapsulForm, openNinjaForm } from './editor.js?v=24';
+import { setupKapsul, renderKapsul, kapsulItems, dayKey, openBirthdayLetter } from './kapsul.js?v=24';
+import { setupUltah, renderHariH, mustBlowFirst, nudgeCake } from './ultah.js?v=24';
+import { setupNinja, renderNinja } from './ninja.js?v=24';
+import { drawScene, sceneFor } from './gambar.js?v=24';
 
 const DAY = 86400000;
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -1171,6 +1172,31 @@ function setupLogin() {
     $('#coret-btn').hidden = !editor.ok;
     if (!editor.ok) stopCoret();
     safely('gulungan', () => renderKapsul()); // tombol tulis & pensil hanya untuk editor/penulisnya
+    safely('jalan ninja', renderNinja); // papan "tulis janji" hanya untuk editor
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Jalan ninja kita: janji & mimpi berdua di papan kayu (ninja.js, formnya di editor.js)
+   -------------------------------------------------------------------------- */
+const memoryById = (id) => state.memories.find((m) => m && m.id != null && String(m.id) === String(id));
+
+function setupJalanNinja() {
+  setupNinja({
+    names: () => [state.settings.person1 || 'Rijal', state.settings.person2 || 'Silva'],
+    canEdit: () => editor.ok,
+    memoryThumb: (id) => {
+      const m = memoryById(id);
+      const first = m && getMemoryImages(m)[0];
+      return first ? asset(first) : null;
+    },
+    openMemory: (id, el) => {
+      const m = memoryById(id);
+      if (m) openLightbox(m, 0, el);
+    },
+    onWrite: (item) => {
+      if (editor.ok) openNinjaForm({ item, settings: state.settings, memories: state.memories });
+    }
   });
 }
 
@@ -1545,6 +1571,7 @@ function renderMemories() {
   safely('buku', renderBook);
   safely('album', () => { renderTabs(); renderGrid(); });
   safely('cerita', renderJourney);
+  safely('jalan ninja', renderNinja); // foto kenangan di belakang papan
 }
 
 function renderSettings() {
@@ -1557,6 +1584,7 @@ function renderSettings() {
     if (!$('#letter-wrap').hidden) showLetter(state.letterIndex);
   });
   safely('gulungan', () => renderKapsul()); // nama di label gulungan
+  safely('jalan ninja', renderNinja); // nama di papan
 }
 
 function init() {
@@ -1582,7 +1610,7 @@ function init() {
 
   for (const [name, setup] of [['kalender', setupCalendar], ['buku', setupBook], ['album', setupStrip],
     ['cerita', setupJourney], ['tumpukan', setupStack], ['lightbox', setupLightbox], ['surat', setupLetter],
-    ['gulungan', setupGulungan], ['coretan', setupCoret], ['login', setupLogin], ['editor', setupEditor], ['navigasi', setupNav]]) safely(name, setup);
+    ['gulungan', setupGulungan], ['jalan ninja', setupJalanNinja], ['coretan', setupCoret], ['login', setupLogin], ['editor', setupEditor], ['navigasi', setupNav]]) safely(name, setup);
   safely('musik', () => setupAudioSynth($('#btn-audio-toggle'), $('#bg-music'), () => ({
     ...state.settings,
     musicUrl: asset(state.settings.musicUrl || 'assets/audio/music.mp3')

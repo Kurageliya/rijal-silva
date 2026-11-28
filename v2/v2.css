@@ -671,6 +671,74 @@ button { font: inherit; color: inherit; }
 .journey-end { position: relative; padding-top: 56px; text-align: center; font: 700 36px var(--hand); color: var(--accent-bg); }
 .empty-journey { text-align: center; font: 700 26px var(--hand); color: var(--on-bg-soft); padding: 40px 0; }
 
+/* Jalan ninja kita (v2/ninja.js): papan doa kayu (ema) digantung di pasak; yang terkabul dicap 叶.
+   Paling bawah tujuan akhirnya, papan lebih besar bertali merah-putih. */
+.ninja { text-align: center; }
+.ninja-quote { font: 700 26px/1.2 var(--hand); color: var(--on-bg-soft); margin-top: 10px; }
+.ninja-count { font-size: 14px; color: var(--on-bg-soft); margin-top: 8px; }
+.ninja-count b { color: var(--accent-bg); font-weight: 800; }
+.ema-list { list-style: none; margin: 52px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 46px 34px; }
+.ema-item { position: relative; width: 184px; }
+.ema, .ema-add {
+  position: relative; z-index: 1; display: block; width: 100%; aspect-ratio: 200 / 196; padding: 0; border: 0; background: none;
+  cursor: pointer; color: #4a2f1c; -webkit-tap-highlight-color: transparent;
+  transform: rotate(var(--tilt, 0deg)); transform-origin: 50% 4.6%; transition: transform 0.45s var(--ease-out);
+}
+@media (hover: hover) { .ema:hover { transform: rotate(calc(var(--tilt, 0deg) * -0.7)); } }
+.ema:focus-visible, .ema-add:focus-visible { outline: 2px dashed var(--accent-bg); outline-offset: 4px; }
+.ema.swing { animation: ema-swing 0.9s var(--ease-out); }
+@keyframes ema-swing {
+  25% { transform: rotate(calc(var(--tilt, 0deg) + 7deg)); }
+  55% { transform: rotate(calc(var(--tilt, 0deg) - 4deg)); }
+  80% { transform: rotate(calc(var(--tilt, 0deg) + 1.5deg)); }
+}
+.ema-art { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 1px 1px rgba(40, 25, 10, 0.3)) drop-shadow(0 8px 8px rgba(40, 25, 10, 0.14)); }
+.ema-body { fill: #e6c896; stroke: #b48a55; stroke-width: 1.6; stroke-linejoin: round; }
+.ema-roof { fill: #c79a5f; opacity: 0.55; }
+.ema-grain { fill: none; stroke: #c49d68; stroke-width: 1; opacity: 0.55; }
+.ema-edge { fill: none; stroke: #a8794a; stroke-width: 1.2; opacity: 0.5; stroke-linejoin: round; }
+.ema-hole { fill: #5b3d22; }
+.ema-cord { fill: none; stroke: #b0303f; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.ema-cord.white { stroke: #fbf4e6; stroke-width: 2; }
+.ema-peg { fill: #b8924a; stroke: #7d5f2b; stroke-width: 1.4; }
+.ema-peg-shine { fill: #f1dca3; }
+.ema-text {
+  position: absolute; left: 12%; right: 12%; top: 45%; bottom: 17%; display: flex; align-items: center; justify-content: center;
+  font: 700 22px/1.08 var(--hand); text-align: center; overflow: hidden; overflow-wrap: anywhere;
+}
+.ema-text.long { font-size: 18px; }
+.ema-by { position: absolute; left: 0; right: 0; bottom: 8.5%; font: 600 11px/1 var(--sans); letter-spacing: 0.02em; color: #7a5636; }
+.ema-stamp {
+  position: absolute; right: 5%; bottom: 3%; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+  font: 400 26px/1 'Yuji Boku', 'Yu Mincho', 'Noto Serif CJK JP', serif; color: #b0303f; border: 2.5px solid #b0303f;
+  transform: rotate(-14deg); opacity: 0.88; mix-blend-mode: multiply;
+}
+.ema-when { font: 700 19px/1.1 var(--hand); color: var(--accent-bg); margin-top: 8px; }
+/* foto kenangan terselip di belakang papan, menyembul di atas lereng atapnya */
+.ema-photo {
+  position: absolute; z-index: 0; top: 3%; right: 0; width: 66px; padding: 4px 4px 12px; border: 0; cursor: pointer;
+  background: #fffdf8; box-shadow: 0 2px 6px rgba(40, 25, 10, 0.28); transform: rotate(var(--r, 9deg)); transition: transform 0.3s var(--ease-out);
+}
+.ema-photo.l { right: auto; left: 0; }
+.ema-photo img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+@media (hover: hover) { .ema-photo:hover { transform: rotate(var(--r, 9deg)) translateY(-8px); } }
+/* papan kosong bergaris putus-putus untuk menulis janji (editor) */
+.ema-add { color: var(--on-bg-soft); transform: none; }
+.ema-add .ema-art { filter: none; }
+.ema-add .ema-art path { fill: none; stroke: currentColor; stroke-width: 2; stroke-dasharray: 7 6; opacity: 0.6; }
+.ema-add span { position: absolute; left: 0; right: 0; top: 52%; font: 700 23px/1 var(--hand); }
+.ema-add span i { font-size: 14px; margin-right: 2px; }
+.ema-add:hover { color: var(--accent-bg); }
+/* jalan menuju tujuan akhir */
+.ema-path { width: 2px; height: 58px; margin: 34px auto 0; background: repeating-linear-gradient(to bottom, var(--on-bg-soft) 0 6px, transparent 6px 13px); opacity: 0.55; }
+.ema-akhir { display: flex; justify-content: center; margin-top: 10px; }
+.ema-final { width: 272px; }
+.ema-final .ema-body { fill: #ecd2a4; }
+.ema-final .ema-text { top: 43%; bottom: 25%; font-size: 48px; color: #8c2f4b; }
+.ema-final .ema-by { bottom: 12%; font: 700 23px/1 var(--hand); color: #6b4a2c; letter-spacing: 0; }
+.ema-final .ema-stamp { width: 60px; height: 60px; font-size: 34px; }
+.ema-final .ema-photo { width: 84px; }
+
 /* ---------- Surat ---------- */
 /* Panggung surat = papan coret 1000 × 520 yang lebarnya ikut halaman. Amplop ikut mengecil di HP supaya
    coretan di sekitarnya tetap berada di tempat yang sama, di HP maupun laptop. */
@@ -1085,6 +1153,13 @@ body:not(.can-edit) .editor-only { display: none !important; }
 .check { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; cursor: pointer; }
 .check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--wine); }
 .check small { display: block; color: var(--ink-soft); }
+/* form Jalan ninja: contoh janji yang tinggal diketuk, dan isian "sudah terkabul" */
+.ninja-ideas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -6px; }
+.ninja-ideas .field-label { width: 100%; }
+.ninja-idea { border: 1px solid var(--line); background: var(--print); color: var(--ink); border-radius: 999px; padding: 5px 11px; font: 500 13px var(--sans); cursor: pointer; }
+.ninja-idea:hover { border-color: var(--wine); color: var(--wine); }
+.ninja-done { display: grid; gap: 14px; }
+.ninja-done[hidden] { display: none; }
 .dlg-actions {
   position: sticky; bottom: 0; z-index: 2; display: flex; justify-content: flex-end; align-items: center; gap: 18px;
   margin: 6px -30px 0; padding: 14px 30px 18px; background: var(--print); border-top: 1px solid var(--line);
@@ -1345,6 +1420,16 @@ body:not(.can-edit) .editor-only { display: none !important; }
   .note-cat { font-size: 23px; }
   .note p { font-size: 17px; }
   .journey-end { padding-top: 40px; font-size: 32px; }
+  .ninja-quote { font-size: 23px; }
+  .ema-list { gap: 36px 18px; margin-top: 40px; }
+  .ema-item { width: calc(50% - 9px); max-width: 172px; }
+  .ema-text { font-size: 19.5px; }
+  .ema-text.long { font-size: 16px; }
+  .ema-stamp { width: 40px; height: 40px; font-size: 22px; }
+  .ema-photo { width: 56px; }
+  .ema-final { width: 240px; }
+  .ema-final .ema-text { font-size: 42px; }
+  .ema-final .ema-by { font-size: 21px; }
   .book-controls .book-nav, .strip-foot .book-nav { width: 44px; height: 44px; }
   .letter { padding: 24px 22px 26px 40px; }
   .letter::before { left: 28px; }
