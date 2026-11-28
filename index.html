@@ -8,8 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;800&family=Yellowtail&display=swap" rel="stylesheet">
+  <!-- huruf kuas hanya untuk satu huruf 封 (segel) di gulungan tersegel -->
+  <link href="https://fonts.googleapis.com/css2?family=Yuji+Boku&text=%E5%B0%81&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="v2/v2.css?v=20">
+  <link rel="stylesheet" href="v2/v2.css?v=21">
   <meta name="theme-color" content="#f4ede3">
   <script>
     // Mode dipasang sebelum halaman tergambar supaya tidak berkedip.
@@ -259,6 +261,13 @@
             </div>
           </div>
         </div>
+
+        <!-- gulungan tersegel: surat yang baru bisa dibaca di tanggalnya (v2/kapsul.js) -->
+        <div class="kapsul" id="kapsul" hidden>
+          <p class="kapsul-title">gulungan tersegel</p>
+          <p class="kapsul-desc">surat yang baru boleh dibuka di hari tertentu</p>
+          <ul class="kapsul-list" id="kapsul-list"></ul>
+        </div>
       </div>
     </section>
   </main>
@@ -296,7 +305,35 @@
     <button class="lb-close" id="lb-close" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
   </div>
 
-  <!-- form edit (kenangan, pengaturan, surat, foto buku) -->
+  <!-- membaca gulungan tersegel: segel dirobek, lalu kertasnya terbentang -->
+  <div class="kapsul-view" id="kapsul-view" hidden aria-hidden="true">
+    <div class="kv-backdrop" data-close></div>
+    <div class="kv-scroll" id="kv-scroll" role="dialog" aria-modal="true" aria-labelledby="kv-title" tabindex="-1">
+      <div class="kv-rod"><span class="gl-knob l"></span><span class="kv-bar"></span><span class="gl-knob r"></span></div>
+      <div class="kv-paper-wrap">
+        <div class="kv-paper">
+          <div class="kv-in">
+            <p class="kv-head" id="kv-head"></p>
+            <h3 class="kv-title" id="kv-title"></h3>
+            <div class="kv-body" id="kv-body"></div>
+            <p class="kv-foot" id="kv-foot"></p>
+          </div>
+        </div>
+      </div>
+      <div class="kv-roll-wrap" id="kv-roll">
+        <span class="gl-knob l"></span><span class="gl-roll"></span><span class="gl-knob r"></span>
+        <span class="gl-syal"></span>
+        <button type="button" class="kv-segel" id="kv-segel" aria-label="Robek segelnya">
+          <span class="half a"><b>封</b><small></small></span>
+          <span class="half b" aria-hidden="true"><b>封</b><small></small></span>
+        </button>
+      </div>
+      <p class="kv-hint" id="kv-hint"></p>
+    </div>
+    <button class="kv-close" id="kv-close" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <!-- form edit (kenangan, pengaturan, surat, foto buku, gulungan tersegel) -->
   <dialog class="sheet-dialog" id="editor-dialog" aria-label="Edit" autofocus tabindex="-1"></dialog>
 
   <div id="toast-container" class="toast-container"></div>
@@ -305,6 +342,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script type="module" src="v2/v2.js?v=20"></script>
+  <script type="module" src="v2/v2.js?v=21"></script>
 </body>
 </html>

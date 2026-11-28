@@ -32,6 +32,22 @@ service cloud.firestore {
       allow write: if isEditor();
     }
 
+    // Gulungan tersegel (v2/kapsul.js): isi surat baru boleh dibaca setelah openAt
+    // (pukul 00.00 WIB di tanggal dibuka). Sebelum itu hanya penulisnya yang bisa membaca.
+    // Keterangan gulungan (siapa, untuk siapa, kapan) ada di settings/kapsul.
+    match /kapsul/{id} {
+      allow get: if request.time >= resource.data.openAt
+                 || (request.auth != null && request.auth.uid == resource.data.authorUid);
+      allow create: if isEditor()
+                    && request.resource.data.authorUid == request.auth.uid
+                    && request.resource.data.openAt is timestamp;
+      allow update: if isEditor()
+                    && resource.data.authorUid == request.auth.uid
+                    && request.resource.data.authorUid == request.auth.uid
+                    && request.resource.data.openAt is timestamp;
+      allow delete: if isEditor() && resource.data.authorUid == request.auth.uid;
+    }
+
     // Dibaca js/services/authService.js untuk mengecek apakah akun yang login editor.
     // Dokumennya tidak perlu dibuat.
     match /editors/{docId} {

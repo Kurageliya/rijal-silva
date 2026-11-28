@@ -8,7 +8,8 @@ import { syncMemoryToCloud, deleteMemoryFromCloud, syncSettingsToCloud, saveScra
 import { compressAndReadImage, isSupportedImageFile, isHeicFile, escapeHtml, formatIndoDate } from '../js/utils/helpers.js';
 import { getMemoryImages } from '../js/modules/timeline.js';
 import { showToast } from '../js/utils/toast.js';
-import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=20';
+import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=21';
+import { openAtMs, localDay, dayKey } from './kapsul.js?v=21';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -399,5 +400,210 @@ export function openBookPicker(memories, settings) {
     };
     $('[data-save]', dlg).addEventListener('click', (e) => save(e.currentTarget, picked));
     $('[data-reset]', dlg).addEventListener('click', (e) => save(e.currentTarget, []));
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Gulungan tersegel: surat yang baru bisa dibaca pada tanggalnya.
+   Isi surat di kapsul/<id> (dikunci Firestore Rules sampai tanggalnya, kecuali untuk penulisnya),
+   keterangannya (siapa, untuk siapa, kapan) di settings/kapsul supaya rak bisa digambar untuk semua orang.
+   -------------------------------------------------------------------------- */
+const KAPSUL_FROM_KEY = 'v2_kapsul_dari';
+
+/** Tanggal tahunan berikutnya setelah hari ini (hari ini sendiri tidak dihitung, karena segelnya langsung terbuka). */
+function nextYearly(month, day) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let d = new Date(today.getFullYear(), month - 1, day);
+  if (d <= today) d = new Date(today.getFullYear() + 1, month - 1, day);
+  return d;
+}
+
+function kapsulOccasions(s, to) {
+  const list = [];
+  const anniv = /^(\d{4})-(\d{2})-(\d{2})/.exec(s.anniversaryDate || '');
+  if (anniv) {
+    const date = nextYearly(Number(anniv[2]), Number(anniv[3]));
+    const years = date.getFullYear() - Number(anniv[1]);
+    list.push({ key: 'anniv', date, label: `${years} tahun jadian` });
+  }
+  const fallback = to === '1' ? '11-22' : '09-24';
+  const bday = /^(\d{2})-(\d{2})$/.exec(s[`birthdayPerson${to}`] || fallback) || /^(\d{2})-(\d{2})$/.exec(fallback);
+  const toName = to === '1' ? (s.person1 || 'Rijal') : (s.person2 || 'Silva');
+  list.push({ key: 'ultah', date: nextYearly(Number(bday[1]), Number(bday[2])), label: `ulang tahun ${toName}` });
+  return list;
+}
+
+function readKapsulFrom() {
+  try { return localStorage.getItem(KAPSUL_FROM_KEY); } catch (e) { return null; }
+}
+
+/**
+ * Form menulis/mengubah gulungan tersegel. meta = null untuk surat baru.
+ * uid = akun yang sedang masuk; hanya penulisnya yang boleh mengubah atau menghapus.
+ */
+export function openKapsulForm({ settings, meta, items = [], uid }) {
+  const s = settings || {};
+  const isNew = !meta;
+  const names = { 1: s.person1 || 'Rijal', 2: s.person2 || 'Silva' };
+  const mineBefore = items.find((it) => it.authorUid === uid);
+  let from = (meta && meta.from) || (mineBefore && mineBefore.from) || readKapsulFrom() || '1';
+  if (from !== '1' && from !== '2') from = '1';
+  const fmt = (d) => d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const tomorrow = dayKey(new Date(Date.now() + 86400000));
+
+  openDialog(`
+    <h2 class="dlg-title">${isNew ? 'Surat tersegel' : 'Ubah surat tersegel'}</h2>
+    <p class="dlg-text">Suratnya digulung dan disegel sampai tanggal yang kamu pilih. Sebelum itu, isinya hanya bisa dibaca kamu sendiri; yang lain cuma melihat gulungannya.</p>
+    <form class="dlg-form" id="kapsul-form" novalidate>
+      <div class="field"><span class="field-label">Dari</span>
+        <div class="seg">
+          <label><input type="radio" name="from" value="1"${from === '1' ? ' checked' : ''}><span>${escapeHtml(names[1])}</span></label>
+          <label><input type="radio" name="from" value="2"${from === '2' ? ' checked' : ''}><span>${escapeHtml(names[2])}</span></label>
+        </div>
+      </div>
+      <label class="field"><span class="field-label">Dibuka pada</span>
+        <select name="occasion"></select>
+      </label>
+      <label class="field" data-custom hidden><span class="field-label">Tanggal dibuka <small>(segel lepas pukul 00.00 WIB)</small></span>
+        <input type="date" name="date"${isNew ? ` min="${tomorrow}"` : ''} value="${meta ? escapeHtml(meta.openDate) : ''}">
+      </label>
+      <label class="field"><span class="field-label">Judul <small>(boleh kosong; terlihat sebelum dibuka)</small></span>
+        <input type="text" name="title" maxlength="60" value="${escapeHtml((meta && meta.title) || '')}" placeholder="mis. Buat 1 tahun kita">
+      </label>
+      <label class="field"><span class="field-label">Isi surat</span>
+        <textarea name="text" rows="10" class="lined"${isNew ? '' : ' disabled placeholder="memuat isi surat…"'}></textarea>
+      </label>
+      <p class="dlg-hint">Pisahkan paragraf dengan satu baris kosong.</p>
+      <div class="dlg-actions">
+        ${isNew ? '' : '<button type="button" class="link danger-text" data-delete>Hapus</button>'}
+        <button type="button" class="link muted" data-cancel>Batal</button>
+        <button type="submit" class="btn">${isNew ? 'Segel ♡' : 'Simpan'}</button>
+      </div>
+    </form>`, (dlg) => {
+    const form = $('#kapsul-form', dlg);
+    const f = form.elements;
+    const custom = $('[data-custom]', dlg);
+    let occasions = [];
+
+    // pilihan tanggal ikut penerimanya (ulang tahun siapa), jadi digambar ulang saat "Dari" diganti
+    const renderOccasions = () => {
+      const to = from === '1' ? '2' : '1';
+      occasions = kapsulOccasions(s, to);
+      let selected = f.occasion.value;
+      if (!selected) {
+        const same = meta && occasions.find((o) => dayKey(o.date) === meta.openDate);
+        selected = meta ? (same ? same.key : 'lain') : occasions[0].key;
+      }
+      f.occasion.innerHTML = occasions.map((o) => `<option value="${o.key}"${o.key === selected ? ' selected' : ''}>${escapeHtml(o.label.charAt(0).toUpperCase() + o.label.slice(1))} · ${escapeHtml(fmt(o.date))}</option>`).join('')
+        + `<option value="lain"${selected === 'lain' ? ' selected' : ''}>Tanggal lain…</option>`;
+      custom.hidden = f.occasion.value !== 'lain';
+    };
+    renderOccasions();
+
+    form.addEventListener('change', (e) => {
+      if (e.target.name === 'from') { from = e.target.value; renderOccasions(); }
+      if (e.target.name === 'occasion') {
+        custom.hidden = f.occasion.value !== 'lain';
+        if (!custom.hidden) f.date.focus();
+      }
+    });
+    $('[data-cancel]', dlg).addEventListener('click', () => closeDialog());
+
+    const db = () => firebase.firestore();
+    const failed = (err, what) => {
+      console.error(`Gulungan gagal ${what}:`, err);
+      showToast(err && err.code === 'permission-denied'
+        ? 'Ditolak server. Aturan Firestore untuk gulungan tersegel mungkin belum dipasang di Firebase Console.'
+        : `Gagal ${what}. Cek koneksi, lalu coba lagi.`, 5200);
+      return false;
+    };
+
+    if (!isNew) {
+      db().collection('kapsul').doc(meta.id).get().then((snap) => {
+        f.text.value = snap.exists ? String(snap.data().text || '') : '';
+        f.text.disabled = false;
+        f.text.placeholder = '';
+      }).catch((err) => {
+        failed(err, 'memuat isi surat');
+        closeDialog();
+      });
+
+      const del = $('[data-delete]', dlg);
+      del.addEventListener('click', async () => {
+        if (!del.dataset.sure) {
+          del.dataset.sure = '1';
+          del.textContent = 'Yakin hapus?';
+          return;
+        }
+        const ok = await busy(del, async () => {
+          try {
+            const batch = db().batch();
+            batch.delete(db().collection('kapsul').doc(meta.id));
+            batch.update(db().collection('settings').doc('kapsul'), { [`items.${meta.id}`]: firebase.firestore.FieldValue.delete() });
+            await batch.commit();
+            return true;
+          } catch (err) {
+            return failed(err, 'menghapus');
+          }
+        });
+        if (ok) {
+          closeDialog();
+          showToast('Gulungannya sudah dihapus.');
+        }
+      });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (f.text.disabled) { showToast('Tunggu sebentar, isi suratnya masih dimuat.'); return; }
+      const text = f.text.value.trim();
+      if (!text) { showToast('Suratnya belum ditulis.'); f.text.focus(); return; }
+      let openDate;
+      let label;
+      if (f.occasion.value === 'lain') {
+        openDate = f.date.value;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(openDate)) { showToast('Pilih tanggal dibukanya dulu.'); f.date.focus(); return; }
+        label = meta && meta.openDate === openDate ? (meta.label || '') : '';
+      } else {
+        const o = occasions.find((x) => x.key === f.occasion.value);
+        openDate = dayKey(o.date);
+        label = o.label;
+      }
+      const changedDate = !meta || meta.openDate !== openDate;
+      if (changedDate && localDay(openDate) <= localDay(dayKey(new Date()))) {
+        showToast('Pilih tanggal setelah hari ini, supaya ada yang ditunggu.');
+        return;
+      }
+      if (!window.firebase || !firebase.apps.length || !uid) { showToast('Masuk dulu untuk menyegel surat.'); return; }
+      const to = from === '1' ? '2' : '1';
+      const id = meta ? meta.id : `k${Date.now()}`;
+      const info = {
+        id, from, to, openDate, label,
+        title: f.title.value.trim(),
+        authorUid: uid,
+        sealedAt: (meta && meta.sealedAt) || dayKey(new Date())
+      };
+      const ok = await busy($('button[type="submit"]', form), async () => {
+        try {
+          const batch = db().batch();
+          batch.set(db().collection('kapsul').doc(id), {
+            authorUid: uid, from, to, text,
+            openAt: firebase.firestore.Timestamp.fromMillis(openAtMs(openDate)),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          batch.set(db().collection('settings').doc('kapsul'), { items: { [id]: info } }, { merge: true });
+          await batch.commit();
+          return true;
+        } catch (err) {
+          return failed(err, 'menyegel');
+        }
+      });
+      if (ok) {
+        try { localStorage.setItem(KAPSUL_FROM_KEY, from); } catch (err) { /* tidak apa-apa */ }
+        closeDialog();
+        showToast(isNew ? `Sudah disegel ♡ Dibuka ${fmt(localDay(openDate))}.` : 'Gulungannya sudah diperbarui.', 4200);
+      }
+    });
   });
 }

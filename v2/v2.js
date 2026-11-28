@@ -12,8 +12,9 @@ import { getMemoryImages } from '../js/modules/timeline.js';
 import { escapeHtml, getMemoryTimestamp } from '../js/utils/helpers.js';
 import { showToast } from '../js/utils/toast.js';
 // ?v= dinaikkan bersama v2.js setiap editor.js berubah (supaya HP tidak memakai versi lama dari cache)
-import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured } from './editor.js?v=20';
-import { drawScene, sceneFor } from './gambar.js?v=20';
+import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured, openKapsulForm } from './editor.js?v=21';
+import { setupKapsul, renderKapsul, kapsulItems } from './kapsul.js?v=21';
+import { drawScene, sceneFor } from './gambar.js?v=21';
 
 const DAY = 86400000;
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -1157,6 +1158,21 @@ function setupLogin() {
     btn.textContent = editor.user ? 'keluar' : 'masuk';
     $('#coret-btn').hidden = !editor.ok;
     if (!editor.ok) stopCoret();
+    safely('gulungan', () => renderKapsul()); // tombol tulis & pensil hanya untuk editor/penulisnya
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Gulungan tersegel di bawah amplop (isi & tampilannya di kapsul.js, formnya di editor.js)
+   -------------------------------------------------------------------------- */
+function setupGulungan() {
+  setupKapsul({
+    names: () => [state.settings.person1 || 'Rijal', state.settings.person2 || 'Silva'],
+    canEdit: () => editor.ok,
+    uid: () => (editor.ok && editor.user ? editor.user.uid : null),
+    onWrite: (meta) => {
+      if (editor.ok && editor.user) openKapsulForm({ settings: state.settings, meta, items: kapsulItems(), uid: editor.user.uid });
+    }
   });
 }
 
@@ -1515,6 +1531,7 @@ function renderSettings() {
     renderLetterTabs();
     if (!$('#letter-wrap').hidden) showLetter(state.letterIndex);
   });
+  safely('gulungan', () => renderKapsul()); // nama di label gulungan
 }
 
 function init() {
@@ -1524,7 +1541,8 @@ function init() {
   renderMemories();
   safely('jam', () => { buildFlipclock(); tickClock(); });
   setInterval(() => safely('jam', tickClock), 1000);
-  setInterval(() => { safely('waktu', renderTime); safely('ulang tahun', renderBirthdays); }, 60000);
+  // gulungan hanya digambar ulang kalau hitungan harinya berubah atau segelnya sudah boleh dibuka
+  setInterval(() => { safely('waktu', renderTime); safely('ulang tahun', renderBirthdays); safely('gulungan', () => renderKapsul()); }, 60000);
 
   // angka hari menuju ulang tahun menghitung naik saat pertama terlihat
   $$('.ticket-wrap').forEach((card) => {
@@ -1539,7 +1557,7 @@ function init() {
 
   for (const [name, setup] of [['kalender', setupCalendar], ['buku', setupBook], ['album', setupStrip],
     ['cerita', setupJourney], ['tumpukan', setupStack], ['lightbox', setupLightbox], ['surat', setupLetter],
-    ['coretan', setupCoret], ['login', setupLogin], ['editor', setupEditor], ['navigasi', setupNav]]) safely(name, setup);
+    ['gulungan', setupGulungan], ['coretan', setupCoret], ['login', setupLogin], ['editor', setupEditor], ['navigasi', setupNav]]) safely(name, setup);
   safely('musik', () => setupAudioSynth($('#btn-audio-toggle'), $('#bg-music'), () => ({
     ...state.settings,
     musicUrl: asset(state.settings.musicUrl || 'assets/audio/music.mp3')

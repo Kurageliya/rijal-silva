@@ -743,6 +743,188 @@ button { font: inherit; color: inherit; }
 @keyframes ink { to { opacity: 1; } }
 .letter-foot { display: flex; justify-content: space-between; margin-top: 10px; }
 
+/* ---------- Gulungan tersegel (v2/kapsul.js) ----------
+   Gulungan kertas dengan ujung kayu, diikat syal merah rajutan (Hinata, The Last) dan ditempeli
+   kertas segel 封. Warna gulungan tetap di kedua mode karena ia benda, bukan tulisan di latar. */
+@property --rh { syntax: '<length>'; inherits: true; initial-value: 52px; }
+.kapsul { margin-top: 72px; text-align: center; }
+.kapsul[hidden] { display: none; }
+.kapsul-title { font: 700 36px/1 var(--hand); color: var(--on-bg); }
+.kapsul-desc { font-size: 14px; color: var(--on-bg-soft); margin-top: 8px; }
+.kapsul-list { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 40px 64px; margin: 34px 0 0; padding: 0; }
+.gl-item, .gl-add-wrap { position: relative; width: 236px; display: flex; flex-direction: column; align-items: center; }
+
+.gulungan, .kv-roll-wrap { --rh: 52px; position: relative; display: block; }
+.gulungan {
+  width: 224px; height: 112px; border: none; padding: 0; background: none; cursor: pointer;
+  transform: rotate(var(--tilt, -1deg)); filter: drop-shadow(0 7px 6px rgba(50, 35, 25, 0.24));
+  transition: transform 0.3s var(--ease-out);
+}
+.gulungan:hover { transform: rotate(var(--tilt, -1deg)) translateY(-4px); }
+.gl-roll {
+  position: absolute; left: 13px; right: 13px; top: 50%; height: var(--rh); transform: translateY(-50%); border-radius: 8px;
+  background:
+    linear-gradient(180deg, transparent 63%, rgba(110, 80, 45, 0.3) 63% 64.5%, transparent 64.5%),
+    linear-gradient(180deg, #c9b38d 0%, #ecdfc0 17%, #fbf5e4 38%, #f2e6cb 60%, #dac49d 84%, #bea47a 100%);
+  box-shadow: inset 0 0 0 1px rgba(90, 60, 30, 0.16);
+}
+.gl-knob {
+  position: absolute; top: 50%; width: 15px; height: calc(var(--rh) * 0.62); transform: translateY(-50%); border-radius: 4px;
+  background: linear-gradient(180deg, #2c1910, #6b3f27 30%, #8d5836 45%, #4a2a1a 74%, #23130b);
+}
+.gl-knob.l { left: 0; }
+.gl-knob.r { right: 0; }
+.gl-syal {
+  position: absolute; left: 62%; top: 50%; width: 21px; height: calc(var(--rh) + 8px); transform: translateY(-50%); border-radius: 4px;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 3px, rgba(0, 0, 0, 0.15) 3px 4px),
+    repeating-linear-gradient(45deg, transparent 0 3px, rgba(255, 255, 255, 0.1) 3px 4px), #b8323f;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+/* dua ujung syal yang menjuntai, berumbai di bawahnya */
+.gl-syal::before, .gl-syal::after {
+  content: ''; position: absolute; top: calc(100% - 9px); width: 11px; height: 30px; transform-origin: top center;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 3px, rgba(0, 0, 0, 0.15) 3px 4px) top / 100% 78% no-repeat,
+    linear-gradient(#b8323f, #b8323f) top / 100% 78% no-repeat,
+    repeating-linear-gradient(90deg, #b8323f 0 2px, transparent 2px 3.5px) bottom / 100% 23% no-repeat;
+}
+.gl-syal::before { left: -1px; transform: rotate(17deg); }
+.gl-syal::after { right: -1px; height: 25px; transform: rotate(-10deg); }
+.gl-segel, .kv-segel .half {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: #f4ebd4; color: #a8293a;
+  box-shadow: inset 0 0 0 3px #f4ebd4, inset 0 0 0 4px rgba(176, 47, 63, 0.55), 0 1px 2px rgba(60, 40, 20, 0.3);
+}
+.gl-segel { position: absolute; left: 24%; top: 50%; width: 34px; height: calc(var(--rh) + 32px); transform: translateY(-50%) rotate(-5deg); }
+.gl-segel b, .kv-segel b { font: 400 24px/1 'Yuji Boku', 'Yu Mincho', 'Noto Serif CJK JP', serif; }
+.gl-segel small, .kv-segel small { font: 700 8px/1.15 var(--sans); color: #7d5a3c; text-align: center; }
+
+.gl-head { font: 700 26px/1.1 var(--hand); color: var(--on-bg); margin-top: 14px; overflow-wrap: anywhere; }
+.gl-sub { font-size: 13px; color: var(--on-bg-soft); margin-top: 4px; }
+.gl-when { font-size: 13px; color: var(--on-bg-soft); margin-top: 8px; line-height: 1.45; }
+.gl-when b { font: 700 22px/1.2 var(--hand); color: var(--accent-bg); }
+.gl-edit {
+  position: absolute; top: -10px; right: -2px; width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  border: 1.5px solid var(--bg-line); background: var(--bg); color: var(--on-bg-soft);
+}
+.gl-edit:hover { color: var(--on-bg); border-color: var(--on-bg-soft); }
+.gl-add {
+  width: 224px; height: 112px; border: 2px dashed var(--bg-line); border-radius: 12px; background: transparent; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  font: 700 23px var(--hand); color: var(--on-bg-soft); transition: color 0.15s, border-color 0.15s;
+}
+.gl-add:hover { color: var(--on-bg); border-color: var(--on-bg-soft); }
+.gl-add-wrap .gl-sub { max-width: 210px; margin-top: 10px; }
+
+/* sudah boleh dibuka: sesekali bergoyang mengajak diketuk */
+.gl-item.ready .gulungan { animation: gl-goyang 3.2s ease-in-out 1s infinite; }
+@keyframes gl-goyang {
+  0%, 76%, 100% { transform: rotate(var(--tilt)); }
+  80% { transform: rotate(calc(var(--tilt) - 4deg)); }
+  85% { transform: rotate(calc(var(--tilt) + 3.5deg)); }
+  90% { transform: rotate(calc(var(--tilt) - 2deg)); }
+  95% { transform: rotate(calc(var(--tilt) + 1deg)); }
+}
+/* masih tersegel: menolak dibuka */
+.gulungan.nope { animation: gl-nope 0.45s ease-in-out; }
+@keyframes gl-nope {
+  0%, 100% { transform: rotate(var(--tilt)); }
+  20% { transform: rotate(var(--tilt)) translateX(-7px); }
+  40% { transform: rotate(var(--tilt)) translateX(6px); }
+  60% { transform: rotate(var(--tilt)) translateX(-4px); }
+  80% { transform: rotate(var(--tilt)) translateX(2px); }
+}
+/* sudah dibuka: syal lepas, tinggal sobekan bawah segelnya */
+.gl-item.opened .gl-syal { display: none; }
+.gl-item.opened .gl-segel { clip-path: polygon(0 54%, 18% 49%, 38% 57%, 58% 48%, 80% 55%, 100% 50%, 100% 100%, 0 100%); }
+
+/* membaca: gulungan di tengah layar */
+.kapsul-view {
+  position: fixed; inset: 0; z-index: 85; display: flex; overflow-y: auto; overscroll-behavior: contain;
+  padding: 72px 16px 56px; opacity: 0; transition: opacity 0.3s;
+}
+.kapsul-view[hidden] { display: none; }
+.kapsul-view.show { opacity: 1; }
+.kv-backdrop { position: fixed; inset: 0; background: rgba(24, 16, 12, 0.84); }
+.kv-scroll {
+  position: relative; margin: auto; width: min(560px, 100%); display: flex; flex-direction: column;
+  transform: translateY(18px) scale(0.96); transition: transform 0.45s var(--ease-out);
+}
+.kapsul-view.show .kv-scroll { transform: none; }
+.kv-close {
+  position: fixed; top: 14px; right: 14px; z-index: 3; width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(255, 255, 255, 0.14); color: #fff; font-size: 18px;
+}
+.kv-close:hover { background: rgba(255, 255, 255, 0.24); }
+/* batang atas + tali gantung */
+.kv-rod { --rh: 18px; position: relative; height: 18px; z-index: 1; }
+.kv-bar { position: absolute; left: 12px; right: 12px; top: 0; height: 18px; border-radius: 9px; background: linear-gradient(180deg, #2c1910, #6b3f27 35%, #8d5836 50%, #3d2416); }
+.kv-rod::before {
+  content: ''; position: absolute; left: 50%; bottom: calc(100% - 4px); width: 150px; height: 40px; transform: translateX(-50%);
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - 1.2px), #c94a52 calc(50% - 1.2px) calc(50% + 1.2px), transparent calc(50% + 1.2px)) left / 50% 100% no-repeat,
+    linear-gradient(to bottom left, transparent calc(50% - 1.2px), #c94a52 calc(50% - 1.2px) calc(50% + 1.2px), transparent calc(50% + 1.2px)) right / 50% 100% no-repeat;
+}
+/* kertasnya: tinggi 0 saat tergulung, lalu terbentang sampai tinggi isinya (--paper-h diukur kapsul.js).
+   Trik grid 0fr → 1fr tidak dipakai: di Chrome kotaknya lebih tinggi dari kertasnya selama transisi, jadi ada celah. */
+.kv-paper-wrap { margin: -2px 20px 0; }
+.kv-paper {
+  height: 0; overflow: hidden; color: #2c2a4a; background-color: #fbf5e6;
+  transition: height 1.3s cubic-bezier(0.3, 0.6, 0.25, 1);
+  background-image:
+    linear-gradient(90deg, rgba(120, 85, 45, 0.16), transparent 14px, transparent calc(100% - 14px), rgba(120, 85, 45, 0.16)),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.32 0 0 0 0 0.22 0 0 0 0.09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.kv-scroll.open .kv-paper { height: var(--paper-h, auto); }
+.kv-scroll.done .kv-paper { height: auto; } /* setelah terbentang: ikut tinggi isi kalau layar diputar/diubah */
+.kv-in { padding: 34px 38px 30px; }
+.kv-head { font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #8a6d52; text-align: center; }
+.kv-title { font: 700 40px/1.05 var(--hand); color: #8c2f4b; text-align: center; margin: 10px 0 22px; overflow-wrap: anywhere; }
+.kv-body p { font: 500 26px/38px var(--hand); white-space: pre-line; overflow-wrap: anywhere; opacity: 0; }
+.kv-scroll.open .kv-body p { animation: ink 0.5s ease-out forwards; }
+.kv-body p + p { margin-top: 22px; }
+.kv-body p.sign { text-align: right; color: #8c2f4b; }
+.kv-foot { font-size: 12px; color: #8a6d52; text-align: center; margin-top: 26px; }
+/* gulungan bawah: tebal saat tertutup, menipis saat kertasnya terbentang */
+.kv-roll-wrap { --rh: 66px; height: 74px; display: flex; align-items: center; justify-content: center; transition: --rh 1.3s cubic-bezier(0.3, 0.6, 0.25, 1), height 1.3s cubic-bezier(0.3, 0.6, 0.25, 1); }
+.kv-scroll.open .kv-roll-wrap { --rh: 30px; height: 34px; }
+.kv-roll-wrap .gl-knob { width: 19px; }
+.kv-roll-wrap .gl-syal { width: 26px; left: 63%; transition: transform 0.6s ease-in, opacity 0.6s ease-in; }
+.kv-segel {
+  position: absolute; left: calc(32% - 23px); top: 50%; width: 46px; height: 116px; border: none; padding: 0; background: none; cursor: pointer;
+  transform: translateY(-50%) rotate(-4deg); animation: segel-ajak 2.6s ease-in-out 0.8s infinite;
+}
+.kv-segel .half { position: absolute; inset: 0; gap: 8px; box-shadow: inset 0 0 0 4px #f4ebd4, inset 0 0 0 5px rgba(176, 47, 63, 0.55); transition: transform 0.75s cubic-bezier(0.4, 0, 0.7, 1), opacity 0.75s ease-in; }
+.kv-segel b { font-size: 34px; }
+.kv-segel small { font-size: 10px; }
+.kv-segel .a { clip-path: polygon(0 0, 100% 0, 100% 50%, 80% 55%, 60% 47%, 40% 56%, 20% 48%, 0 53%); }
+.kv-segel .b { clip-path: polygon(0 53%, 20% 48%, 40% 56%, 60% 47%, 80% 55%, 100% 50%, 100% 100%, 0 100%); filter: drop-shadow(0 1px 1px rgba(60, 40, 20, 0.3)); }
+@keyframes segel-ajak {
+  0%, 70%, 100% { transform: translateY(-50%) rotate(-4deg); }
+  76% { transform: translateY(-50%) rotate(-8deg); }
+  84% { transform: translateY(-50%) rotate(1deg); }
+  92% { transform: translateY(-50%) rotate(-5deg); }
+}
+.kv-scroll:focus { outline: none; }
+.kv-segel:focus-visible { outline: 2px solid #f3ecdc; outline-offset: 4px; }
+.kv-scroll.tearing .kv-segel { animation: none; pointer-events: none; outline: none; }
+.kv-scroll.tearing .kv-segel .a { transform: translate(-36px, -80px) rotate(-30deg); opacity: 0; }
+.kv-scroll.tearing .kv-segel .b { transform: translate(30px, 100px) rotate(24deg); opacity: 0; }
+.kv-scroll.tearing .kv-roll-wrap .gl-syal { transform: translateY(calc(-50% + 60px)) rotate(14deg); opacity: 0; }
+.kv-scroll.no-seal .kv-segel, .kv-scroll.no-seal .kv-roll-wrap .gl-syal { display: none; }
+.kv-scroll:not(.no-seal):not(.tearing) .kv-roll-wrap { cursor: pointer; }
+.kv-hint { text-align: center; font: 700 26px var(--hand); color: #f3ecdc; margin-top: 30px; min-height: 1px; }
+@media (max-width: 860px) {
+  .kapsul { margin-top: 60px; }
+  .kapsul-list { gap: 44px; }
+  .kapsul-view { padding: 70px 12px 40px; }
+  .kv-paper-wrap { margin-inline: 16px; }
+  .kv-in { padding: 26px 20px 24px; }
+  .kv-title { font-size: 34px; }
+  .kv-body p { font-size: 23px; line-height: 33px; }
+}
+
 /* ---------- Mode edit (hanya untuk akun Rijal & Silva) ---------- */
 body:not(.can-edit) .editor-only { display: none !important; }
 .album-tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 14px 22px; }
@@ -780,6 +962,7 @@ body:not(.can-edit) .editor-only { display: none !important; }
 .dlg-title { font: 700 34px/1.05 var(--hand); color: var(--wine); margin-bottom: 18px; }
 .dlg-text, .dlg-hint { font-size: 14px; color: var(--ink-soft); }
 .dlg-hint { margin-top: -6px; }
+.dlg-text + .dlg-form { margin-top: 16px; }
 .dlg-form { display: grid; gap: 16px; }
 .field { display: grid; gap: 6px; min-width: 0; }
 .field[hidden] { display: none; }
@@ -803,6 +986,17 @@ body:not(.can-edit) .editor-only { display: none !important; }
   position: sticky; bottom: 0; z-index: 2; display: flex; justify-content: flex-end; align-items: center; gap: 18px;
   margin: 6px -30px 0; padding: 14px 30px 18px; background: var(--print); border-top: 1px solid var(--line);
 }
+/* pilihan dua tombol (mis. "Dari Rijal / Silva" di form gulungan tersegel) */
+.seg { display: flex; gap: 8px; }
+.seg label { flex: 1; position: relative; }
+.dlg-form .seg input[type="radio"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.seg span {
+  display: block; text-align: center; cursor: pointer; padding: 9px 12px; border-radius: 999px;
+  border: 1.5px solid var(--line); font-weight: 600; font-size: 14px; color: var(--ink-soft);
+}
+.seg input:checked + span { background: var(--ink); border-color: var(--ink); color: var(--print); }
+.seg input:focus-visible + span { outline: 2px solid var(--wine); outline-offset: 2px; }
+.link.danger-text { color: #a32a22; margin-right: auto; }
 .btn { border: none; cursor: pointer; font-family: var(--sans); }
 .btn:disabled { opacity: 0.6; cursor: default; }
 .btn.danger { background: #a32a22; }
