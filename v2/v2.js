@@ -12,11 +12,12 @@ import { getMemoryImages } from '../js/modules/timeline.js';
 import { escapeHtml, getMemoryTimestamp } from '../js/utils/helpers.js';
 import { showToast } from '../js/utils/toast.js';
 // ?v= dinaikkan bersama v2.js setiap editor.js berubah (supaya HP tidak memakai versi lama dari cache)
-import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured, openKapsulForm, openNinjaForm } from './editor.js?v=24';
-import { setupKapsul, renderKapsul, kapsulItems, dayKey, openBirthdayLetter } from './kapsul.js?v=24';
-import { setupUltah, renderHariH, mustBlowFirst, nudgeCake } from './ultah.js?v=24';
-import { setupNinja, renderNinja } from './ninja.js?v=24';
-import { drawScene, sceneFor } from './gambar.js?v=24';
+import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured, openKapsulForm, openNinjaForm, openNontonForm } from './editor.js?v=25';
+import { setupKapsul, renderKapsul, kapsulItems, dayKey, openBirthdayLetter } from './kapsul.js?v=25';
+import { setupUltah, renderHariH, mustBlowFirst, nudgeCake } from './ultah.js?v=25';
+import { setupNinja, renderNinja, ninjaItems, FINAL_ID } from './ninja.js?v=25';
+import { setupNonton, renderNonton, nontonAbs } from './nonton.js?v=25';
+import { drawScene, sceneFor } from './gambar.js?v=25';
 
 const DAY = 86400000;
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -1173,6 +1174,7 @@ function setupLogin() {
     if (!editor.ok) stopCoret();
     safely('gulungan', () => renderKapsul()); // tombol tulis & pensil hanya untuk editor/penulisnya
     safely('jalan ninja', renderNinja); // papan "tulis janji" hanya untuk editor
+    safely('nonton', renderNonton); // tombol +1 episode hanya untuk editor
   });
 }
 
@@ -1196,6 +1198,23 @@ function setupJalanNinja() {
     },
     onWrite: (item) => {
       if (editor.ok) openNinjaForm({ item, settings: state.settings, memories: state.memories });
+    },
+    alsoShow: () => nontonAbs() > 0
+  });
+
+  // syal nonton Naruto bareng (nonton.js), di bagian yang sama
+  setupNonton({
+    canEdit: () => editor.ok,
+    onChange: () => safely('jalan ninja', renderNinja),
+    onAtur: (abs) => { if (editor.ok) openNontonForm({ abs }); },
+    // sampai Shippuden 500: papan janji yang menyebut Naruto (mis. "Nonton Naruto sampai tamat bareng") ikut dicap 叶
+    onTamat: () => {
+      const it = ninjaItems().find((x) => x.id !== FINAL_ID && !x.done && /naruto/i.test(x.text));
+      if (!it) { showToast('Tamat! Syalnya selesai dirajut ♡', 4200); return; }
+      firebase.firestore().collection('settings').doc('ninja')
+        .set({ items: { [it.id]: { ...it, done: true, doneAt: dayKey(new Date()) } } }, { merge: true })
+        .then(() => showToast(`Tamat! Papan "${it.text}" ikut dicap 叶 ♡`, 5200))
+        .catch((err) => console.error('Papan janji gagal dicap:', err));
     }
   });
 }
@@ -1595,7 +1614,7 @@ function init() {
   safely('jam', () => { buildFlipclock(); tickClock(); });
   setInterval(() => safely('jam', tickClock), 1000);
   // gulungan hanya digambar ulang kalau hitungan harinya berubah atau segelnya sudah boleh dibuka
-  setInterval(() => { safely('waktu', renderTime); safely('ulang tahun', renderBirthdays); safely('gulungan', () => renderKapsul()); }, 60000);
+  setInterval(() => { safely('waktu', renderTime); safely('ulang tahun', renderBirthdays); safely('gulungan', () => renderKapsul()); safely('nonton', renderNonton); }, 60000);
 
   // angka hari menuju ulang tahun menghitung naik saat pertama terlihat
   $$('.ticket-wrap').forEach((card) => {

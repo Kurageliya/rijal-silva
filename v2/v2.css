@@ -738,6 +738,47 @@ button { font: inherit; color: inherit; }
 .ema-final .ema-by { bottom: 12%; font: 700 23px/1 var(--hand); color: #6b4a2c; letter-spacing: 0; }
 .ema-final .ema-stamp { width: 60px; height: 60px; font-size: 34px; }
 .ema-final .ema-photo { width: 84px; }
+/* Nonton Naruto bareng (v2/nonton.js): syal merah rajutan yang memanjang tiap episode, jarum rajut di ujungnya */
+.nonton { max-width: 860px; margin: 44px auto 8px; text-align: left; }
+.nonton[hidden] { display: none; }
+.nonton-kicker { font: 700 22px/1 var(--hand); color: var(--accent-bg); }
+.nonton-now { margin-top: 8px; }
+.nonton-now b { display: block; font-size: 28px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.1; color: var(--on-bg); }
+.nonton-now span { display: block; margin-top: 3px; font-size: 14px; color: var(--on-bg-soft); }
+.syal-track { position: relative; height: 92px; margin: 16px 8px 0 12px; --p: 0; }
+.syal-rail { position: absolute; left: 0; right: 0; top: 30px; border-top: 2px dashed var(--on-bg-soft); opacity: 0.45; }
+.syal {
+  position: absolute; left: 0; top: 20px; height: 22px; width: max(10px, calc(var(--p) * 1%)); border-radius: 2px 5px 5px 2px;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 3px, rgba(0, 0, 0, 0.15) 3px 4px),
+    repeating-linear-gradient(45deg, transparent 0 3px, rgba(255, 255, 255, 0.1) 3px 4px), #b8323f;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: width 0.9s var(--ease-out);
+}
+.syal::before { content: ''; position: absolute; right: 100%; top: 2px; bottom: 2px; width: 9px; background: repeating-linear-gradient(to bottom, #b8323f 0 2px, transparent 2px 4px); }
+.syal-needles {
+  position: absolute; top: 3px; left: max(10px, calc(var(--p) * 1%)); width: 30px; height: 42px; margin-left: -14px;
+  transform-origin: 50% 80%; transition: left 0.9s var(--ease-out); pointer-events: none;
+}
+.syal-needles svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.syal-needles .needle { stroke: #c49359; stroke-width: 3; stroke-linecap: round; }
+.syal-needles .needle-knob { fill: #8a5d2c; }
+.syal-needles.knit { animation: knit 0.7s ease-in-out; }
+@keyframes knit { 25% { transform: rotate(-12deg); } 60% { transform: rotate(10deg); } }
+.syal-tick { position: absolute; top: 16px; height: 30px; border-left: 2px solid var(--on-bg-soft); opacity: 0.6; }
+.syal-tick i { position: absolute; bottom: 100%; left: -1px; transform: translateX(-50%); font: 600 11px/1.5 var(--sans); font-style: normal; color: var(--on-bg-soft); white-space: nowrap; }
+.syal-tag { position: absolute; top: 58px; transform: translateX(-50%); font: 700 18px/1.1 var(--hand); color: var(--on-bg-soft); white-space: nowrap; }
+.syal-tag::before { content: ''; position: absolute; left: 50%; top: -15px; height: 11px; border-left: 1.5px solid currentColor; opacity: 0.6; }
+.syal-tag.start { left: 0; transform: none; }
+.syal-tag.start::before { left: 0; }
+.syal-tag.end { left: auto; right: 0; transform: none; color: var(--accent-bg); }
+.syal-tag.end::before { left: auto; right: 0; }
+.nonton-meta { display: grid; gap: 3px; margin-top: 4px; font-size: 13.5px; color: var(--on-bg-soft); }
+.nonton-meta i { font-style: italic; }
+.nonton-act { display: flex; align-items: center; gap: 18px; margin-top: 14px; }
+.nonton-act[hidden] { display: none; }
+.nonton-plus { padding: 10px 18px; font-size: 14px; }
+.nonton-plus:disabled { opacity: 0.5; cursor: default; transform: none; }
 
 /* ---------- Surat ---------- */
 /* Panggung surat = papan coret 1000 × 520 yang lebarnya ikut halaman. Amplop ikut mengecil di HP supaya
@@ -1430,6 +1471,10 @@ body:not(.can-edit) .editor-only { display: none !important; }
   .ema-final { width: 240px; }
   .ema-final .ema-text { font-size: 42px; }
   .ema-final .ema-by { font-size: 21px; }
+  .nonton { margin-top: 34px; }
+  .nonton-now b { font-size: 24px; }
+  .syal-track { margin-left: 10px; margin-right: 2px; }
+  .syal-tag { font-size: 15.5px; }
   .book-controls .book-nav, .strip-foot .book-nav { width: 44px; height: 44px; }
   .letter { padding: 24px 22px 26px 40px; }
   .letter::before { left: 28px; }

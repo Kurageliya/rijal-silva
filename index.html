@@ -11,7 +11,7 @@
   <!-- huruf kuas hanya untuk dua huruf: 封 (segel gulungan tersegel) dan 叶 (cap "terkabul" di Jalan ninja kita) -->
   <link href="https://fonts.googleapis.com/css2?family=Yuji+Boku&text=%E5%B0%81%E5%8F%B6&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="v2/v2.css?v=24">
+  <link rel="stylesheet" href="v2/v2.css?v=25">
   <meta name="theme-color" content="#f4ede3">
   <script>
     // Mode dipasang sebelum halaman tergambar supaya tidak berkedip.
@@ -229,6 +229,19 @@
         <div class="kicker reveal">janji &amp; mimpi berdua</div>
         <h2 class="reveal">Jalan ninja kita</h2>
         <p class="ninja-quote reveal">“Nggak akan menarik kata-kata sendiri. Itu jalan ninja kita.”</p>
+
+        <!-- nonton Naruto bareng: syal merah yang dirajut tiap episode, sampai Shippuden 500 (nikah) (v2/nonton.js) -->
+        <div class="nonton" id="nonton" hidden>
+          <p class="nonton-kicker">syal yang dirajut sambil nonton Naruto</p>
+          <p class="nonton-now" id="nonton-now"></p>
+          <div class="syal-track" id="syal-track" role="img"></div>
+          <p class="nonton-meta" id="nonton-meta"></p>
+          <div class="nonton-act" id="nonton-act" hidden>
+            <button type="button" class="btn nonton-plus" data-plus>+1 episode</button>
+            <button type="button" class="link muted" data-atur>atur</button>
+          </div>
+        </div>
+
         <p class="ninja-count" id="ninja-count"></p>
         <ul class="ema-list" id="ema-list"></ul>
         <div class="ema-path" aria-hidden="true"></div>
@@ -364,6 +377,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script type="module" src="v2/v2.js?v=24"></script>
+  <script type="module" src="v2/v2.js?v=25"></script>
 </body>
 </html>

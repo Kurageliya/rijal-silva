@@ -8,8 +8,8 @@ import { syncMemoryToCloud, deleteMemoryFromCloud, syncSettingsToCloud, saveScra
 import { compressAndReadImage, isSupportedImageFile, isHeicFile, escapeHtml, formatIndoDate } from '../js/utils/helpers.js';
 import { getMemoryImages } from '../js/modules/timeline.js';
 import { showToast } from '../js/utils/toast.js';
-import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=24';
-import { openAtMs, localDay, dayKey } from './kapsul.js?v=24';
+import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=25';
+import { openAtMs, localDay, dayKey } from './kapsul.js?v=25';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -756,6 +756,77 @@ export function openNinjaForm({ item, settings, memories = [] }) {
       if (ok) {
         closeDialog();
         showToast(done && !it.done ? 'Terkabul! ♡ Papannya sudah dicap 叶.' : isNew ? 'Janjinya sudah digantung ♡' : 'Papannya sudah diperbarui.', 4200);
+      }
+    });
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Nonton Naruto bareng: atur episode terakhir yang sudah ditonton (v2/nonton.js)
+   abs dihitung dari Naruto 1: Naruto 1–220 = 1–220, Shippuden 1–500 = 221–720.
+   -------------------------------------------------------------------------- */
+export function openNontonForm({ abs = 0 }) {
+  let series = abs <= 0 ? '0' : abs <= 220 ? 'n' : 's';
+  const ep = abs <= 0 ? '' : abs <= 220 ? abs : abs - 220;
+  openDialog(`
+    <h2 class="dlg-title">Sudah sampai mana?</h2>
+    <p class="dlg-text">Isi episode terakhir yang sudah kalian tonton. Setelah ini cukup tekan "+1 episode" tiap selesai nonton.</p>
+    <form class="dlg-form" id="nonton-form" novalidate>
+      <div class="field"><span class="field-label">Seri</span>
+        <div class="seg">
+          <label><input type="radio" name="series" value="0"${series === '0' ? ' checked' : ''}><span>Belum mulai</span></label>
+          <label><input type="radio" name="series" value="n"${series === 'n' ? ' checked' : ''}><span>Naruto</span></label>
+          <label><input type="radio" name="series" value="s"${series === 's' ? ' checked' : ''}><span>Shippuden</span></label>
+        </div>
+      </div>
+      <label class="field" data-ep${series === '0' ? ' hidden' : ''}><span class="field-label">Episode terakhir yang sudah ditonton <small data-max></small></span>
+        <input type="number" name="ep" inputmode="numeric" min="1" value="${escapeHtml(String(ep))}">
+      </label>
+      <div class="dlg-actions">
+        <button type="button" class="link muted" data-cancel>Batal</button>
+        <button type="submit" class="btn">Simpan</button>
+      </div>
+    </form>`, (dlg) => {
+    const form = $('#nonton-form', dlg);
+    const f = form.elements;
+    const epField = $('[data-ep]', dlg);
+    const max = () => (series === 'n' ? 220 : 500);
+    const sync = () => {
+      epField.hidden = series === '0';
+      f.ep.max = max();
+      $('[data-max]', dlg).textContent = `(1–${max()})`;
+    };
+    sync();
+    form.addEventListener('change', (e) => {
+      if (e.target.name !== 'series') return;
+      series = e.target.value;
+      sync();
+      if (series !== '0') f.ep.focus();
+    });
+    $('[data-cancel]', dlg).addEventListener('click', () => closeDialog());
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      let next = 0;
+      if (series !== '0') {
+        const n = Math.round(Number(f.ep.value));
+        if (!n || n < 1 || n > max()) { showToast(`Isi episode 1 sampai ${max()}.`); f.ep.focus(); return; }
+        next = series === 'n' ? n : 220 + n;
+      }
+      if (!window.firebase || !firebase.apps.length) { showToast('Belum tersambung ke server. Coba muat ulang halamannya.'); return; }
+      const ok = await busy($('button[type="submit"]', form), async () => {
+        try {
+          await firebase.firestore().collection('settings').doc('nonton').set({ abs: next }, { merge: true });
+          return true;
+        } catch (err) {
+          console.error('Catatan nonton gagal diatur:', err);
+          showToast(err && err.code === 'permission-denied' ? 'Ditolak server. Coba keluar lalu masuk lagi.' : 'Gagal menyimpan. Cek koneksi, lalu coba lagi.', 5200);
+          return false;
+        }
+      });
+      if (ok) {
+        closeDialog();
+        showToast(next ? `Sudah diatur: ${next <= 220 ? `Naruto ${next}` : `Shippuden ${next - 220}`} ♡` : 'Sudah diatur: belum mulai.');
       }
     });
   });

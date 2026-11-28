@@ -36,7 +36,8 @@ const nj = {
     canEdit: () => false,
     memoryThumb: () => null, // (memoryId) → url foto pertama kenangan itu, atau null kalau sudah tidak ada
     openMemory: () => {}, // (memoryId, elemen asal)
-    onWrite: () => {} // (item | null) → buka form di editor.js
+    onWrite: () => {}, // (item | null) → buka form di editor.js
+    alsoShow: () => false // bagian ini tetap tampil untuk tamu walau belum ada janji (mis. sudah mulai nonton Naruto)
   }
 };
 
@@ -125,7 +126,8 @@ export function renderNinja() {
   const items = wishes();
   const fin = finalItem();
   // tamu tidak melihat bagian kosong; editor selalu melihatnya (untuk menulis janji pertama)
-  const show = items.length > 0 || canEdit;
+  // (catatan nonton Naruto di bagian ini juga membuatnya tampil, lihat nonton.js)
+  const show = items.length > 0 || canEdit || nj.hooks.alsoShow();
   sec.hidden = !show;
   const navLi = $('#nav-ninja');
   if (navLi) navLi.hidden = !show;
@@ -138,7 +140,7 @@ export function renderNinja() {
   const done = items.filter((it) => it.done).length;
   $('#ninja-count').innerHTML = items.length
     ? `<b>${done}</b> dari <b>${items.length}</b> janji sudah terkabul`
-    : 'belum ada janji yang digantung. tulis yang pertama ♡';
+    : canEdit ? 'belum ada janji yang digantung. tulis yang pertama ♡' : '';
   list.innerHTML = items.map((it, i) => emaHtml(it, i, canEdit)).join('') + (canEdit ? `<li class="ema-item ema-add-wrap">
       <button type="button" class="ema-add" data-add>
         <svg class="ema-art" viewBox="0 -36 200 196" aria-hidden="true"><path d="M6 42 L100 6 L194 42 V153 Q194 158 189 158 H11 Q6 158 6 153 Z"/></svg>
