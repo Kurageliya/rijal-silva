@@ -12,9 +12,10 @@ import { getMemoryImages } from '../js/modules/timeline.js';
 import { escapeHtml, getMemoryTimestamp } from '../js/utils/helpers.js';
 import { showToast } from '../js/utils/toast.js';
 // ?v= dinaikkan bersama v2.js setiap editor.js berubah (supaya HP tidak memakai versi lama dari cache)
-import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured, openKapsulForm } from './editor.js?v=22';
-import { setupKapsul, renderKapsul, kapsulItems, dayKey } from './kapsul.js?v=22';
-import { drawScene, sceneFor } from './gambar.js?v=22';
+import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured, openKapsulForm } from './editor.js?v=23';
+import { setupKapsul, renderKapsul, kapsulItems, dayKey, openBirthdayLetter } from './kapsul.js?v=23';
+import { setupUltah, renderHariH, mustBlowFirst, nudgeCake } from './ultah.js?v=23';
+import { drawScene, sceneFor } from './gambar.js?v=23';
 
 const DAY = 86400000;
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -58,7 +59,8 @@ const state = {
   bookIndex: 0,
   letterIndex: 0,
   memoriesSig: '',
-  settingsSig: ''
+  settingsSig: '',
+  doa: {} // doa ulang tahun per orang ('1' / '2'), dipakai juga setelah lilin ditiup
 };
 
 /* --------------------------------------------------------------------------
@@ -400,17 +402,21 @@ function renderBirthdays() {
   const p1 = s.person1 || 'Rijal';
   const p2 = s.person2 || 'Silva';
   const people = [
-    { el: $('#bday-2'), name: p2, b: parseBirthday(s.birthdayPerson2 || '09-24', 9, 24),
+    { n: '2', el: $('#bday-2'), name: p2, b: parseBirthday(s.birthdayPerson2 || '09-24', 9, 24),
       doa: `Doa tulus untuk ${p2}: semoga selalu bahagia, sehat, cantik, dan selalu bersama ${p1} selamanya.` },
-    { el: $('#bday-1'), name: p1, b: parseBirthday(s.birthdayPerson1 || '11-22', 11, 22),
+    { n: '1', el: $('#bday-1'), name: p1, b: parseBirthday(s.birthdayPerson1 || '11-22', 11, 22),
       doa: `Doa terbaik untuk ${p1}: semoga dimudahkan segala urusan, rezeki melimpah, dan jadi sosok terbaik untuk ${p2}.` }
   ];
   const now = new Date();
+  // tes di localhost: ?harih=1 / ?harih=2 memaksa hari ini jadi ulang tahun orang itu
+  const forced = location.hostname === 'localhost' ? new URLSearchParams(location.search).get('harih') : null;
   for (const person of people) {
     const { el, b } = person;
     let next = new Date(now.getFullYear(), b.month - 1, b.day);
     if (midnight(next) < midnight(now)) next = new Date(now.getFullYear() + 1, b.month - 1, b.day);
-    const left = daysBetween(now, next);
+    const left = forced === person.n ? 0 : daysBetween(now, next);
+    person.today = left === 0;
+    state.doa[person.n] = person.doa;
     const zodiac = getZodiac(b.month, b.day);
     $('[data-name]', el).textContent = person.name;
     $('[data-meta]', el).textContent = `${b.day} ${next.toLocaleDateString('id-ID', { month: 'long' })} · ${zodiac.name}`;
@@ -422,6 +428,9 @@ function renderBirthdays() {
     $('[data-on]', el).textContent = left === 0 ? `Selamat ulang tahun, ${person.name}!` : fmtLong(next);
     $('[data-wish]', el).onclick = (e) => { heartBurst(e.currentTarget); showToast(person.doa, 4200); };
   }
+  // hari-H: kue berlilin di karcisnya, sapaan di atas halaman, dan judul tab
+  const todays = renderHariH(people);
+  document.title = todays.length ? `Selamat ulang tahun, ${todays.map((p) => p.name).join(' & ')}! ♡` : `${p1} & ${p2}`;
 }
 
 /* --------------------------------------------------------------------------
@@ -1178,7 +1187,17 @@ function setupGulungan() {
     onWrite: (meta, preset) => {
       if (editor.ok && editor.user) openKapsulForm({ settings: state.settings, meta, preset, items: kapsulItems(), uid: editor.user.uid });
     },
-    onChange: () => safely('waktu', renderTime) // tanda segel di target jalur hari
+    onChange: () => safely('waktu', renderTime), // tanda segel di target jalur hari
+    mustBlowFirst,
+    nudge: nudgeCake
+  });
+  // hari-H ulang tahun (ultah.js): setelah lilinnya padam, surat ulang tahunnya terbuka
+  setupUltah({
+    onBlown: (n) => {
+      const result = openBirthdayLetter(n);
+      if (result === 'early') showToast('Surat ulang tahunnya baru bisa dibuka pukul 00.00 WIB. Sebentar lagi ya ♡', 4600);
+      else if (result === 'none' && state.doa[n]) showToast(state.doa[n], 4600);
+    }
   });
 }
 

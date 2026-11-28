@@ -8,8 +8,8 @@ import { syncMemoryToCloud, deleteMemoryFromCloud, syncSettingsToCloud, saveScra
 import { compressAndReadImage, isSupportedImageFile, isHeicFile, escapeHtml, formatIndoDate } from '../js/utils/helpers.js';
 import { getMemoryImages } from '../js/modules/timeline.js';
 import { showToast } from '../js/utils/toast.js';
-import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=22';
-import { openAtMs, localDay, dayKey } from './kapsul.js?v=22';
+import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=23';
+import { openAtMs, localDay, dayKey } from './kapsul.js?v=23';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];

@@ -61,7 +61,11 @@ const kap = {
   contents: new Map(),
   opened: new Set(readJson(OPENED_KEY, [])),
   sig: '',
-  hooks: { names: () => ['Rijal', 'Silva'], settings: () => ({}), canEdit: () => false, uid: () => null, onWrite: () => {}, onChange: null },
+  hooks: {
+    names: () => ['Rijal', 'Silva'], settings: () => ({}), canEdit: () => false, uid: () => null, onWrite: () => {}, onChange: null,
+    // hari-H ulang tahun (v2/ultah.js): suratnya baru boleh dibuka setelah lilinnya ditiup
+    mustBlowFirst: () => false, nudge: () => {}
+  },
   view: { item: null, busy: false, timers: [] }
 };
 
@@ -238,7 +242,27 @@ function onShelfClick(e) {
       : `Sabar ya, segelnya baru bisa dibuka ${fmtLong(localDay(it.openDate))}${n > 0 ? ` (${n} hari lagi)` : ''}.`, 4200);
     return;
   }
+  if (statusOf(it) === 'ready' && isBirthdayLetter(it) && it.openDate === dayKey(new Date()) && kap.hooks.mustBlowFirst(it.to)) {
+    shake(btn);
+    kap.hooks.nudge(it.to);
+    showToast('Tiup lilinnya dulu ya, kuenya ada di karcis ↑', 3600);
+    return;
+  }
   openView(it);
+}
+
+/**
+ * Dipanggil setelah lilin ulang tahun orang ke-n padam: buka surat ulang tahun untuknya yang tanggalnya hari ini.
+ * Hasil: 'opened', 'early' (ada, tapi segelnya belum lepas, mis. jam perangkat lebih cepat dari WIB), atau 'none'.
+ */
+export function openBirthdayLetter(n) {
+  const today = dayKey(new Date());
+  const letters = sorted().filter((it) => it.to === n && it.openDate === today && isBirthdayLetter(it));
+  if (!letters.length) return 'none';
+  const it = letters.find((x) => statusOf(x) !== 'sealed');
+  if (!it) return 'early';
+  openView(it);
+  return 'opened';
 }
 
 /* --------------------------------------------------------------------------
