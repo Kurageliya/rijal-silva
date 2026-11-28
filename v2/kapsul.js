@@ -61,7 +61,7 @@ const kap = {
   contents: new Map(),
   opened: new Set(readJson(OPENED_KEY, [])),
   sig: '',
-  hooks: { names: () => ['Rijal', 'Silva'], canEdit: () => false, uid: () => null, onWrite: () => {} },
+  hooks: { names: () => ['Rijal', 'Silva'], settings: () => ({}), canEdit: () => false, uid: () => null, onWrite: () => {}, onChange: null },
   view: { item: null, busy: false, timers: [] }
 };
 
@@ -117,7 +117,61 @@ function whenText(it, status) {
   return `<b>${n <= 0 ? 'sebentar lagi' : n === 1 ? 'besok dibuka' : `${n} hari lagi`}</b>`;
 }
 
-/** Rak gulungan di bawah amplop. Tamu tidak melihat bagian ini kalau belum ada gulungan. */
+/** 'MM-DD' ulang tahun orang ke-n (dari pengaturan, atau bawaannya). */
+function birthdayMD(n) {
+  const fallback = n === '1' ? '11-22' : '09-24';
+  const raw = (kap.hooks.settings() || {})[`birthdayPerson${n}`];
+  return /^\d{2}-\d{2}$/.test(raw || '') ? raw : fallback;
+}
+
+/** Surat ulang tahun = dibuka tepat di hari ulang tahun penerimanya; tempatnya di bawah karcis orang itu. */
+function isBirthdayLetter(it) {
+  return it.openDate.slice(5) === birthdayMD(it.to);
+}
+
+/** Akun yang sedang masuk ini orang ke berapa (dari suratnya yang lain, atau pilihan "Dari" terakhir di form). */
+function myPerson(uid) {
+  const mine = kap.items.find((it) => it.authorUid === uid);
+  if (mine) return mine.from;
+  try {
+    const v = localStorage.getItem('v2_kapsul_dari');
+    return v === '1' || v === '2' ? v : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function itemHtml(it, i, { canEdit, uid, onTicket = false }) {
+  const status = statusOf(it);
+  const to = escapeHtml(nameOf(it.to));
+  const from = escapeHtml(nameOf(it.from));
+  const date = localDay(it.openDate);
+  const mine = canEdit && uid && it.authorUid === uid;
+  let text;
+  if (onTicket) {
+    // di bawah karcis sudah jelas untuk siapa dan kapan (hitungan harinya ada di karcis)
+    const note = status === 'sealed' ? 'disegel sampai hari-H' : whenText(it, status);
+    text = `<p class="gl-head">${it.title ? `“${escapeHtml(it.title)}”` : `surat dari ${from}`}</p>
+      <p class="gl-sub">${it.title ? `dari ${from} · ` : ''}${note}</p>`;
+  } else {
+    text = `<p class="gl-head">${it.title ? `“${escapeHtml(it.title)}”` : `untuk ${to}`}</p>
+      <p class="gl-sub">${it.title ? `dari ${from} untuk ${to}` : `dari ${from}`}</p>
+      <p class="gl-when">${escapeHtml(it.label || 'dibuka')} · ${escapeHtml(fmtShort(date))}<br>${whenText(it, status)}</p>`;
+  }
+  return `<li class="gl-item ${status}" style="--tilt:${TILTS[i % TILTS.length]}deg">
+      <button type="button" class="gulungan" data-id="${escapeHtml(it.id)}"
+        aria-label="Surat ${status === 'sealed' ? 'tersegel ' : ''}dari ${from} untuk ${to}, dibuka ${escapeHtml(fmtDate(date))}">${scrollMarkup(it)}</button>
+      <div class="gl-text">${text}</div>
+      ${mine ? `<button type="button" class="gl-edit" data-edit="${escapeHtml(it.id)}" title="Ubah suratmu" aria-label="Ubah surat ini"><i class="fa-solid fa-pen"></i></button>` : ''}
+    </li>`;
+}
+
+/**
+ * Gulungan ada di bagian Waktu:
+ * - surat ulang tahun diselipkan di bawah karcis ulang tahun penerimanya (#tk-gulungan-1 / -2);
+ * - surat hari jadi & tanggal lain berjajar di bawah jalur "perjalanan kita" (#kapsul).
+ * Tamu tidak melihat apa-apa selama belum ada gulungan.
+ */
 export function renderKapsul(force = false) {
   const box = $('#kapsul');
   const list = $('#kapsul-list');
@@ -126,32 +180,31 @@ export function renderKapsul(force = false) {
   const uid = kap.hooks.uid();
   const items = sorted();
   const statuses = items.map((it) => `${it.id}:${statusOf(it)}:${daysLeft(it)}`).join('|');
-  const sig = `${canEdit}|${uid}|${kap.hooks.names().join('&')}|${JSON.stringify(kap.items)}|${statuses}`;
+  const sig = `${canEdit}|${uid}|${kap.hooks.names().join('&')}|${birthdayMD('1')},${birthdayMD('2')}|${JSON.stringify(kap.items)}|${statuses}`;
   if (!force && sig === kap.sig) return;
   kap.sig = sig;
+  const opts = { canEdit, uid };
 
-  box.hidden = !items.length && !canEdit;
-  list.innerHTML = items.map((it, i) => {
-    const status = statusOf(it);
-    const to = escapeHtml(nameOf(it.to));
-    const from = escapeHtml(nameOf(it.from));
-    const date = localDay(it.openDate);
-    const head = it.title ? `“${escapeHtml(it.title)}”` : `untuk ${to}`;
-    const sub = it.title ? `dari ${from} untuk ${to}` : `dari ${from}`;
-    const label = escapeHtml(it.label || 'dibuka');
-    const mine = canEdit && uid && it.authorUid === uid;
-    return `<li class="gl-item ${status}" style="--tilt:${TILTS[i % TILTS.length]}deg">
-      <button type="button" class="gulungan" data-id="${escapeHtml(it.id)}"
-        aria-label="Surat ${status === 'sealed' ? 'tersegel' : ''} dari ${from} untuk ${to}, dibuka ${escapeHtml(fmtDate(date))}">${scrollMarkup(it)}</button>
-      <p class="gl-head">${head}</p>
-      <p class="gl-sub">${sub}</p>
-      <p class="gl-when">${label} · ${escapeHtml(fmtShort(date))}<br>${whenText(it, status)}</p>
-      ${mine ? `<button type="button" class="gl-edit" data-edit="${escapeHtml(it.id)}" title="Ubah suratmu" aria-label="Ubah surat ini"><i class="fa-solid fa-pen"></i></button>` : ''}
-    </li>`;
-  }).join('') + (canEdit ? `<li class="gl-add-wrap">
-      <button type="button" class="gl-add" id="kapsul-add"><i class="fa-solid fa-plus"></i><span>tulis surat tersegel</span></button>
-      ${items.length ? '' : '<p class="gl-sub">mis. untuk 1 tahun jadian, atau ulang tahun pasanganmu</p>'}
+  const others = items.filter((it) => !isBirthdayLetter(it));
+  box.hidden = !others.length && !canEdit;
+  list.innerHTML = others.map((it, i) => itemHtml(it, i, opts)).join('') + (canEdit ? `<li class="gl-add-wrap">
+      <button type="button" class="gl-add" data-add="anniv"><i class="fa-solid fa-plus"></i><span>tulis surat tersegel</span></button>
+      ${others.length ? '' : '<p class="gl-sub">mis. untuk 1 tahun jadian</p>'}
     </li>` : '');
+
+  const me = canEdit ? myPerson(uid) : null;
+  for (const n of ['1', '2']) {
+    const ul = $(`#tk-gulungan-${n}`);
+    if (!ul) continue;
+    const letters = items.filter((it) => it.to === n && isBirthdayLetter(it));
+    // tombol tambah hanya di karcis pasangan, dan selama suratmu untuknya belum ada yang menunggu
+    const add = canEdit && me !== n && !letters.some((it) => it.authorUid === uid && statusOf(it) === 'sealed');
+    ul.hidden = !letters.length && !add;
+    ul.innerHTML = letters.map((it, i) => itemHtml(it, i + 1, { ...opts, onTicket: true })).join('') + (add ? `<li class="gl-add-wrap">
+        <button type="button" class="gl-add" data-add="ultah" data-to="${n}"><i class="fa-solid fa-plus"></i><span>selipkan surat ulang tahun untuk ${escapeHtml(nameOf(n))}</span></button>
+      </li>` : '');
+  }
+  if (kap.hooks.onChange) kap.hooks.onChange();
 }
 
 function shake(btn) {
@@ -167,8 +220,9 @@ function onShelfClick(e) {
     if (it && kap.hooks.canEdit()) kap.hooks.onWrite(it);
     return;
   }
-  if (e.target.closest('#kapsul-add')) {
-    if (kap.hooks.canEdit()) kap.hooks.onWrite(null);
+  const add = e.target.closest('[data-add]');
+  if (add) {
+    if (kap.hooks.canEdit()) kap.hooks.onWrite(null, { occasion: add.dataset.add, to: add.dataset.to || null });
     return;
   }
   const btn = e.target.closest('.gulungan');
@@ -310,8 +364,12 @@ function setItems(items) {
 
 export function setupKapsul(hooks) {
   Object.assign(kap.hooks, hooks);
-  $('#kapsul-list').addEventListener('click', onShelfClick);
-  $('#kapsul-list').addEventListener('animationend', (e) => e.target.classList.remove('nope'));
+  for (const sel of ['#kapsul-list', '#tk-gulungan-1', '#tk-gulungan-2']) {
+    const el = $(sel);
+    if (!el) continue;
+    el.addEventListener('click', onShelfClick);
+    el.addEventListener('animationend', (e) => e.target.classList.remove('nope'));
+  }
   // segel atau gulungannya sendiri boleh diketuk
   $('#kv-roll').addEventListener('click', () => {
     if (!$('#kv-scroll').classList.contains('no-seal')) breakSeal();

@@ -12,9 +12,9 @@ import { getMemoryImages } from '../js/modules/timeline.js';
 import { escapeHtml, getMemoryTimestamp } from '../js/utils/helpers.js';
 import { showToast } from '../js/utils/toast.js';
 // ?v= dinaikkan bersama v2.js setiap editor.js berubah (supaya HP tidak memakai versi lama dari cache)
-import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured, openKapsulForm } from './editor.js?v=21';
-import { setupKapsul, renderKapsul, kapsulItems } from './kapsul.js?v=21';
-import { drawScene, sceneFor } from './gambar.js?v=21';
+import { openMemoryForm, openSettingsForm, openBookPicker, confirmDelete, toggleFeatured, openKapsulForm } from './editor.js?v=22';
+import { setupKapsul, renderKapsul, kapsulItems, dayKey } from './kapsul.js?v=22';
+import { drawScene, sceneFor } from './gambar.js?v=22';
 
 const DAY = 86400000;
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -253,7 +253,10 @@ function renderTrail(start, now, dayN) {
   if (!next.length) return; // tidak mungkin terjadi lagi, tapi jangan sampai menghentikan bagian lain
   const span = midnight(next[0].date) - midnight(done.date);
   const f = span > 0 ? Math.min(1, Math.max(0, (today - midnight(done.date)) / span)) : 1;
-  const stop = (m, cls, em) => `<li class="${cls}"><span class="trail-dot">${cls === 'done' ? '♡' : ''}</span>`
+  // target yang punya gulungan tersegel ditempeli kertas segel kecil
+  const sealed = new Set(kapsulItems().map((it) => it.openDate));
+  const seal = (m) => (sealed.has(dayKey(m.date)) ? '<i class="trail-segel" title="ada gulungan tersegel untuk hari ini">封</i>' : '');
+  const stop = (m, cls, em) => `<li class="${cls}"><span class="trail-dot">${cls === 'done' ? '♡' : ''}${seal(m)}</span>`
     + `<b>${m.label}</b><small>${fmtShort(m.date)}</small><em>${em}</em></li>`;
   const html = stop(done, 'done', 'sudah lewat')
     + next.map((m) => {
@@ -1163,16 +1166,19 @@ function setupLogin() {
 }
 
 /* --------------------------------------------------------------------------
-   Gulungan tersegel di bawah amplop (isi & tampilannya di kapsul.js, formnya di editor.js)
+   Gulungan tersegel di bagian Waktu: di bawah karcis ulang tahun & di bawah jalur hari
+   (isi & tampilannya di kapsul.js, formnya di editor.js)
    -------------------------------------------------------------------------- */
 function setupGulungan() {
   setupKapsul({
     names: () => [state.settings.person1 || 'Rijal', state.settings.person2 || 'Silva'],
+    settings: () => state.settings,
     canEdit: () => editor.ok,
     uid: () => (editor.ok && editor.user ? editor.user.uid : null),
-    onWrite: (meta) => {
-      if (editor.ok && editor.user) openKapsulForm({ settings: state.settings, meta, items: kapsulItems(), uid: editor.user.uid });
-    }
+    onWrite: (meta, preset) => {
+      if (editor.ok && editor.user) openKapsulForm({ settings: state.settings, meta, preset, items: kapsulItems(), uid: editor.user.uid });
+    },
+    onChange: () => safely('waktu', renderTime) // tanda segel di target jalur hari
   });
 }
 

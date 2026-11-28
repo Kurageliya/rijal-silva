@@ -11,7 +11,7 @@
   <!-- huruf kuas hanya untuk satu huruf 封 (segel) di gulungan tersegel -->
   <link href="https://fonts.googleapis.com/css2?family=Yuji+Boku&text=%E5%B0%81&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="v2/v2.css?v=21">
+  <link rel="stylesheet" href="v2/v2.css?v=22">
   <meta name="theme-color" content="#f4ede3">
   <script>
     // Mode dipasang sebelum halaman tergambar supaya tidak berkedip.
@@ -127,7 +127,14 @@
               <ol class="trail-stops" id="trail-stops"></ol>
             </div>
 
+            <!-- gulungan tersegel untuk hari jadi & tanggal lain (v2/kapsul.js);
+                 yang untuk ulang tahun diselipkan di bawah karcis orangnya -->
+            <div class="kapsul" id="kapsul" hidden>
+              <ul class="kapsul-list" id="kapsul-list"></ul>
+            </div>
+
             <div class="bdays">
+              <div class="bday">
               <article class="ticket-wrap silva" id="bday-2">
                 <div class="ticket">
                   <div class="ticket-main">
@@ -143,6 +150,9 @@
                 </div>
                 <img class="sticker" src="assets/images/hinata-birthday.webp" alt="">
               </article>
+              <ul class="tk-gulungan" id="tk-gulungan-2" hidden></ul>
+              </div>
+              <div class="bday">
               <article class="ticket-wrap rijal" id="bday-1">
                 <div class="ticket">
                   <div class="ticket-main">
@@ -158,6 +168,8 @@
                 </div>
                 <img class="sticker" src="assets/images/naruto-birthday.webp" alt="">
               </article>
+              <ul class="tk-gulungan" id="tk-gulungan-1" hidden></ul>
+              </div>
             </div>
       </div>
     </section>
@@ -261,13 +273,6 @@
             </div>
           </div>
         </div>
-
-        <!-- gulungan tersegel: surat yang baru bisa dibaca di tanggalnya (v2/kapsul.js) -->
-        <div class="kapsul" id="kapsul" hidden>
-          <p class="kapsul-title">gulungan tersegel</p>
-          <p class="kapsul-desc">surat yang baru boleh dibuka di hari tertentu</p>
-          <ul class="kapsul-list" id="kapsul-list"></ul>
-        </div>
       </div>
     </section>
   </main>
@@ -342,6 +347,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script type="module" src="v2/v2.js?v=21"></script>
+  <script type="module" src="v2/v2.js?v=22"></script>
 </body>
 </html>

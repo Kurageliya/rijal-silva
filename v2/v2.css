@@ -747,11 +747,10 @@ button { font: inherit; color: inherit; }
    Gulungan kertas dengan ujung kayu, diikat syal merah rajutan (Hinata, The Last) dan ditempeli
    kertas segel 封. Warna gulungan tetap di kedua mode karena ia benda, bukan tulisan di latar. */
 @property --rh { syntax: '<length>'; inherits: true; initial-value: 52px; }
-.kapsul { margin-top: 72px; text-align: center; }
-.kapsul[hidden] { display: none; }
-.kapsul-title { font: 700 36px/1 var(--hand); color: var(--on-bg); }
-.kapsul-desc { font-size: 14px; color: var(--on-bg-soft); margin-top: 8px; }
-.kapsul-list { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 40px 64px; margin: 34px 0 0; padding: 0; }
+/* Tempatnya di lembar kraft bagian Waktu, jadi warnanya warna tulisan di kertas (--ink*, --wine). */
+.kapsul { margin-top: 48px; text-align: center; }
+.kapsul[hidden], .tk-gulungan[hidden] { display: none; }
+.kapsul-list { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 36px 64px; margin: 0; padding: 0; }
 .gl-item, .gl-add-wrap { position: relative; width: 236px; display: flex; flex-direction: column; align-items: center; }
 
 .gulungan, .kv-roll-wrap { --rh: 52px; position: relative; display: block; }
@@ -800,22 +799,51 @@ button { font: inherit; color: inherit; }
 .gl-segel b, .kv-segel b { font: 400 24px/1 'Yuji Boku', 'Yu Mincho', 'Noto Serif CJK JP', serif; }
 .gl-segel small, .kv-segel small { font: 700 8px/1.15 var(--sans); color: #7d5a3c; text-align: center; }
 
-.gl-head { font: 700 26px/1.1 var(--hand); color: var(--on-bg); margin-top: 14px; overflow-wrap: anywhere; }
-.gl-sub { font-size: 13px; color: var(--on-bg-soft); margin-top: 4px; }
-.gl-when { font-size: 13px; color: var(--on-bg-soft); margin-top: 8px; line-height: 1.45; }
-.gl-when b { font: 700 22px/1.2 var(--hand); color: var(--accent-bg); }
+.gl-text { display: contents; }
+.gl-head { font: 700 26px/1.1 var(--hand); color: var(--ink); margin-top: 14px; overflow-wrap: anywhere; }
+.gl-sub { font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
+.gl-when { font-size: 13px; color: var(--ink-soft); margin-top: 8px; line-height: 1.45; }
+.gl-when b, .gl-sub b { font: 700 22px/1.2 var(--hand); color: var(--wine); }
 .gl-edit {
   position: absolute; top: -10px; right: -2px; width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
-  border: 1.5px solid var(--bg-line); background: var(--bg); color: var(--on-bg-soft);
+  border: 1.5px solid rgba(70, 45, 25, 0.3); background: var(--print); color: var(--ink-soft);
 }
-.gl-edit:hover { color: var(--on-bg); border-color: var(--on-bg-soft); }
+.gl-edit:hover { color: var(--ink); border-color: var(--ink-soft); }
 .gl-add {
-  width: 224px; height: 112px; border: 2px dashed var(--bg-line); border-radius: 12px; background: transparent; cursor: pointer;
+  width: 224px; height: 112px; border: 2px dashed rgba(70, 45, 25, 0.4); border-radius: 12px; background: transparent; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  font: 700 23px var(--hand); color: var(--on-bg-soft); transition: color 0.15s, border-color 0.15s;
+  font: 700 23px var(--hand); color: var(--ink-soft); transition: color 0.15s, border-color 0.15s;
 }
-.gl-add:hover { color: var(--on-bg); border-color: var(--on-bg-soft); }
+.gl-add:hover { color: var(--ink); border-color: rgba(70, 45, 25, 0.7); }
 .gl-add-wrap .gl-sub { max-width: 210px; margin-top: 10px; }
+
+/* Di bawah karcis ulang tahun: gulungannya terselip di balik tepi bawah karcis, keterangannya di sebelah kiri */
+.bday { min-width: 0; display: flex; flex-direction: column; }
+.bday .ticket-wrap { z-index: 1; }
+.tk-gulungan {
+  position: relative; list-style: none; margin: -20px 0 0; padding: 0 26px 0 0;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+}
+.tk-gulungan .gl-item { width: auto; flex-direction: row; align-items: flex-start; gap: 6px; }
+.tk-gulungan .gulungan { zoom: 0.82; }
+.tk-gulungan .gulungan:hover { transform: rotate(var(--tilt, -1deg)) translateY(4px); } /* ditarik keluar sedikit */
+.tk-gulungan .gl-text { display: block; order: -1; max-width: 210px; padding-top: 36px; text-align: right; }
+.tk-gulungan .gl-head { font-size: 24px; margin-top: 0; }
+.tk-gulungan .gl-sub b { font-size: 20px; }
+.tk-gulungan .gl-edit { top: auto; bottom: -4px; right: -16px; }
+.tk-gulungan .gl-add-wrap { width: auto; padding-top: 36px; }
+.tk-gulungan .gl-add {
+  width: auto; height: auto; flex-direction: row; gap: 8px; padding: 7px 16px 8px; border-radius: 999px; font-size: 21px;
+}
+.tk-gulungan .gl-add i { font-size: 13px; }
+
+/* tanda di jalur hari: target ini punya gulungan tersegel */
+.trail-segel {
+  position: absolute; top: -13px; right: -12px; width: 20px; height: 30px; display: grid; place-items: center;
+  font: 400 15px/1 'Yuji Boku', 'Yu Mincho', 'Noto Serif CJK JP', serif; font-style: normal; color: #a8293a; background: #f4ebd4;
+  box-shadow: inset 0 0 0 2px #f4ebd4, inset 0 0 0 3px rgba(176, 47, 63, 0.55), 0 1px 2px rgba(60, 40, 20, 0.3);
+  transform: rotate(9deg);
+}
 
 /* sudah boleh dibuka: sesekali bergoyang mengajak diketuk */
 .gl-item.ready .gulungan { animation: gl-goyang 3.2s ease-in-out 1s infinite; }
@@ -916,8 +944,13 @@ button { font: inherit; color: inherit; }
 .kv-scroll:not(.no-seal):not(.tearing) .kv-roll-wrap { cursor: pointer; }
 .kv-hint { text-align: center; font: 700 26px var(--hand); color: #f3ecdc; margin-top: 30px; min-height: 1px; }
 @media (max-width: 860px) {
-  .kapsul { margin-top: 60px; }
+  .kapsul { margin-top: 36px; }
   .kapsul-list { gap: 44px; }
+  .tk-gulungan { padding-right: 8px; margin-top: -18px; }
+  .tk-gulungan .gulungan { zoom: 0.74; }
+  .tk-gulungan .gl-text { max-width: 150px; padding-top: 30px; }
+  .tk-gulungan .gl-head { font-size: 22px; }
+  .tk-gulungan .gl-edit { right: -4px; bottom: -14px; }
   .kapsul-view { padding: 70px 12px 40px; }
   .kv-paper-wrap { margin-inline: 16px; }
   .kv-in { padding: 26px 20px 24px; }
@@ -1085,6 +1118,7 @@ body:not(.can-edit) .editor-only { display: none !important; }
   transform: rotate(-0.8deg); animation: toast-in 0.35s var(--ease-out);
 }
 .toast::before { content: ''; position: absolute; top: -9px; left: 50%; width: 64px; height: 18px; margin-left: -32px; background: var(--tape-yellow); transform: rotate(-3deg); }
+.sheet-dialog .toast { outline: 1px solid var(--line); } /* di atas kertas dialog, warnanya sama; beri garis tipis */
 @keyframes toast-in { from { opacity: 0; transform: translateY(16px) rotate(-0.8deg); } }
 
 /* ---------- Footer ---------- */

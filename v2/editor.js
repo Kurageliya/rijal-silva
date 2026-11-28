@@ -8,8 +8,8 @@ import { syncMemoryToCloud, deleteMemoryFromCloud, syncSettingsToCloud, saveScra
 import { compressAndReadImage, isSupportedImageFile, isHeicFile, escapeHtml, formatIndoDate } from '../js/utils/helpers.js';
 import { getMemoryImages } from '../js/modules/timeline.js';
 import { showToast } from '../js/utils/toast.js';
-import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=21';
-import { openAtMs, localDay, dayKey } from './kapsul.js?v=21';
+import { drawScene, sceneFor, SCENE_KEYS, SCENE_LABELS } from './gambar.js?v=22';
+import { openAtMs, localDay, dayKey } from './kapsul.js?v=22';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -28,6 +28,19 @@ function openDialog(html, bind) {
   dlg.innerHTML = `<span class="tape yellow dlg-tape" aria-hidden="true"></span>
     <button type="button" class="dlg-close" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>${html}`;
   $('.dlg-close', dlg).addEventListener('click', () => closeDialog());
+  // dialog modal ada di "top layer", jadi toast di <body> tertutup olehnya (pesan error tidak terlihat).
+  // Selama dialog terbuka, wadah toast ikut masuk ke dalam dialog; dikembalikan saat ditutup.
+  const toasts = document.getElementById('toast-container');
+  if (toasts) {
+    dlg.append(toasts);
+    if (!dlg.dataset.toastHome) {
+      dlg.dataset.toastHome = '1';
+      dlg.addEventListener('close', () => {
+        const t = document.getElementById('toast-container');
+        if (t && t.parentNode === dlg) document.body.append(t);
+      });
+    }
+  }
   if (!dlg.open) dlg.showModal();
   dlg.focus(); // fokus ke kertasnya, bukan ke tombol tutup (cincin fokus di tombol membingungkan)
   dlg.scrollTop = 0;
@@ -37,6 +50,8 @@ function openDialog(html, bind) {
 function closeDialog() {
   const dlg = dialog();
   if (dlg.open) dlg.close();
+  const toasts = document.getElementById('toast-container');
+  if (toasts && toasts.parentNode === dlg) document.body.append(toasts); // toast "sudah disimpan" langsung terlihat
 }
 
 /** Tombol simpan: nonaktif + teks "Menyimpan…" selama proses, kembali seperti semula sesudahnya. */
@@ -442,12 +457,14 @@ function readKapsulFrom() {
  * Form menulis/mengubah gulungan tersegel. meta = null untuk surat baru.
  * uid = akun yang sedang masuk; hanya penulisnya yang boleh mengubah atau menghapus.
  */
-export function openKapsulForm({ settings, meta, items = [], uid }) {
+export function openKapsulForm({ settings, meta, preset = null, items = [], uid }) {
   const s = settings || {};
   const isNew = !meta;
   const names = { 1: s.person1 || 'Rijal', 2: s.person2 || 'Silva' };
   const mineBefore = items.find((it) => it.authorUid === uid);
-  let from = (meta && meta.from) || (mineBefore && mineBefore.from) || readKapsulFrom() || '1';
+  // preset dari tombol di karcis ulang tahun: penerimanya sudah jelas, jadi pengirimnya pasangannya
+  const presetFrom = preset && (preset.to === '1' || preset.to === '2') ? (preset.to === '1' ? '2' : '1') : null;
+  let from = (meta && meta.from) || presetFrom || (mineBefore && mineBefore.from) || readKapsulFrom() || '1';
   if (from !== '1' && from !== '2') from = '1';
   const fmt = (d) => d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const tomorrow = dayKey(new Date(Date.now() + 86400000));
@@ -493,7 +510,8 @@ export function openKapsulForm({ settings, meta, items = [], uid }) {
       let selected = f.occasion.value;
       if (!selected) {
         const same = meta && occasions.find((o) => dayKey(o.date) === meta.openDate);
-        selected = meta ? (same ? same.key : 'lain') : occasions[0].key;
+        const wanted = preset && occasions.find((o) => o.key === preset.occasion);
+        selected = meta ? (same ? same.key : 'lain') : (wanted ? wanted.key : occasions[0].key);
       }
       f.occasion.innerHTML = occasions.map((o) => `<option value="${o.key}"${o.key === selected ? ' selected' : ''}>${escapeHtml(o.label.charAt(0).toUpperCase() + o.label.slice(1))} · ${escapeHtml(fmt(o.date))}</option>`).join('')
         + `<option value="lain"${selected === 'lain' ? ' selected' : ''}>Tanggal lain…</option>`;
